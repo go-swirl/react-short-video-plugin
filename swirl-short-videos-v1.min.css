@@ -1,0 +1,1328 @@
+@import url(https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.6.0/slick-theme.min.css);
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
+
+* {
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+#swirl_section_main_div p {
+    margin-bottom: 0px !important;
+    margin-top: 0px;
+
+}
+
+.swirl_ssv_total_views img {
+    height: 20px !important;
+    max-height: 20px;
+}
+
+#swirl_section_main_div {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: left;
+
+}
+
+#swirl_section_main_div .slick-slider {
+    height: 100%;
+}
+
+#swirl_section_main_div .slick-slider .slick-track,
+#swirl_section_main_div .slick-slider .slick-list,
+#swirl_section_main_div .slick-slider .slick-slide {
+    height: 100% !important;
+}
+
+.swirl_ssv_modal-wrapper {
+    position: fixed;
+}
+
+#swirl_section_main_div .swirl_ssv_prodct_img_ssv {
+    height: 60px;
+    width: 60px;
+    border-radius: 5px;
+    z-index: 1000;
+    margin-top: -30px;
+    box-shadow: rgb(35 35 35 / 30%) 1px 1px 5px 1px;
+    background-color: #fff;
+}
+
+#swirl_section_main_div .swirl_ssv_produt_section_ssv {
+    display: grid;
+    place-items: center;
+}
+
+.swirl_ssv_product_info p {
+    font-size: 15px;
+    margin-top: 10px !important;
+    text-align: center;
+    padding: 0px 12px;
+    height: 45px;
+    font-weight: 400 !important;
+    overflow: hidden;
+
+}
+
+.swirl_ssv_product_info h3 {
+    text-align: center;
+    font-weight: 200;
+    font-size: 18px;
+    margin: 0;
+}
+
+#swirl_section_main_div .slick-prev {
+    left: 20px !important;
+    z-index: 10000;
+}
+
+#swirl_section_main_div .slick-next {
+    right: 40px !important;
+    z-index: 10000
+}
+
+#swirl_section_main_div .slick-prev:before,
+#swirl_section_main_div .slick-next:before {
+    font-size: 50px !important;
+}
+
+
+
+.swirl_ssv_elements_over_short_play_btn {
+    height: 400px;
+    display: grid;
+    place-items: center;
+
+}
+
+.swirl_ssv_elements_over_short_play_btn img {
+    background-color: rgba(0, 0, 0, .5);
+    border-radius: 50%;
+    padding: 5px;
+    width: 40px;
+}
+
+.swirl_ssv_ssv_duration {
+    background-color: rgba(0, 0, 0, .3);
+    color: #fff;
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin-right: 0px;
+    margin-left: auto;
+    font-size: 14px;
+
+}
+
+.swirl_ssv_elements_over_short p {
+    display: flex;
+    background-color: #ab12209c;
+    border-radius: 3px;
+    padding: 3px 5px;
+    align-items: center;
+    color: #fff;
+}
+
+.swirl_ssv_ssv_views {
+    background-color: rgba(0, 0, 0, .3);
+    color: #fff;
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin-right: 10px;
+    margin-top: 20px;
+}
+
+.ssv_views img {
+    height: 10px;
+}
+
+.swirl_ssv_discount_percent_badge {
+    background-color: #56b280;
+    padding: 3px 10px;
+    color: #ffff;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* test */
+
+.swirl_ssv_main_div_card {
+    padding: 10px;
+
+}
+
+.swirl_ssv_card_for_ssv img {
+    height: 100%;
+    width: 100%;
+}
+
+.swirl_ssv_card_for_ssv video {
+    height: 100%;
+    width: 100%;
+}
+
+/* .card_for_ssv {
+    position: relative;
+} */
+
+
+.swirl_ssv_card {
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+    box-shadow: rgb(35 35 35 / 30%) 1px 1px 5px 1px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.swirl_ssv_media-container {
+    position: relative;
+}
+
+/* video,
+img {
+    width: 100%;
+    height: auto;
+    display: block;
+} */
+
+#swirl_section_main_div .swirl_ssv_overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    z-index: 1;
+}
+
+#swirl_section_main_div .swirl_ssv_overlay-right {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: white;
+    z-index: 1;
+    /* margin-top: 22px; */
+}
+
+#swirl_section_main_div .swirl_ssv_overlay-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    /* Overlay text color */
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1;
+    /* Place the overlay above the video/image */
+}
+
+#swirl_section_main_div .swirl_ssv_description {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    /* Overlay background color */
+    color: white;
+    /* Overlay text color */
+}
+
+#swirl_section_main_div .swirl_ssv_total_views {
+    display: flex;
+    background-color: #ab12209c;
+    border-radius: 3px;
+    padding: 1px 5px;
+    align-items: center;
+    color: #fff;
+    margin-bottom: 0 !important;
+    font-size: 14px;
+}
+
+
+@import url('https://fonts.googleapis.com/css?family=Muli&display=swap');
+
+* {
+    /* font-family: muli, sans-serif !important; */
+}
+
+/* For Chrome, Safari, and newer Edge browsers */
+/* Decrease width */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+#swirl_section_main_div .swirl_ssv_modal-backdrop {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.2);
+    top: 0;
+    left: 0;
+}
+
+#swirl_section_main_div .swirl_ssv_modal-wrapper {
+    /* padding: 10px; */
+    box-shadow: 0px 2px 6px #000;
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    /* max-width: 500px; */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11111;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#swirl_section_main_div .swirl_ssv_modal-content {
+    background-color: #fff;
+    max-width: 50vw;
+    margin: auto;
+
+}
+
+#swirl_section_main_div .swirl_ssv_modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+#swirl_section_main_div .swirl_ssv_modal-close {
+    text-align: center;
+    font-size: 1.2em;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: gray;
+    line-height: 1.7em;
+    color: #fff;
+}
+
+.swirl_ssv_pre_next_elems {
+
+    height: 75%;
+    width: 400px;
+    /* transform: scale(.6); */
+    /* background-color: red; */
+    margin: auto;
+    scale: .7;
+    /* background: url(https://ik.imagekit.io/coverimages/tr:w-540/5624.webp); */
+    /* background-size: 100% 100%; */
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+#swirl_section_main_div .swirl_ssv_ssv_modal_row {
+    background-color: transparent;
+    height: 100vh;
+    display: flex !important;
+    align-items: center;
+    padding: 0px 10%
+        /* margin-top: 15px; */
+}
+
+#swirl_section_main_div .swirl_ssv_ssv_modal_square {
+    background-color: #fff;
+    margin: auto;
+}
+
+#swil_ssv_modal_div>div.swirl_ssv_modal-wrapper>div.slick-slider.slick-vertical.slick-initialized>div.slick-list>div>div.slick-slide.slick-active.slick-current>div>div>div.swirl_ssv_ssv_modal_square>div>div:nth-child(1)>div>div:nth-child(9)>div:nth-child(3)>div>button:nth-child(1) {
+    font-size: 15px !important;
+}
+
+#swil_ssv_modal_div>div.swirl_ssv_modal-wrapper>div.slick-slider.slick-vertical.slick-initialized>div.slick-list>div>div.slick-slide.slick-active.slick-current>div>div>div.swirl_ssv_ssv_modal_square>div>div:nth-child(1)>div>div:nth-child(9)>div:nth-child(3)>div>button:nth-child(2) {
+    font-size: 15px;
+    margin-left: 3px;
+}
+
+/* Create two equal columns that floats next to each other */
+#swirl_section_main_div .swirl_ssv_column {
+    float: left;
+    width: 50%;
+    height: 90vh;
+}
+
+/* Clear floats after the columns */
+#swirl_section_main_div .swirl_ssv_row:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+#swirl_section_main_div .swirl_ssv_video_div {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    object-fit: cover;
+    position: relative;
+}
+
+
+.swirl_ssv_right_column_main img {
+    height: 30px !important;
+}
+
+.small_screen_arrow_left {
+    margin-left: -10px !important;
+}
+
+#swirl_section_main_div .swirl_ssv_product_img_ssv {
+    height: 70px !important;
+    width: 70px !important;
+    /* border-radius: 50%; */
+}
+
+#swirl_section_main_div .swirl_ssv_product_tile_ssv {
+    display: flex;
+    align-items: flex-start;
+    border-bottom: 1px solid #eee;
+    padding: 5px 5px 10px 5px !important;
+
+}
+
+#swirl_section_main_div .swirl_ssv_product_info_tile_ssv {
+    padding: 2px 10px;
+    text-align: left;
+}
+
+#swirl_section_main_div .swirl_ssv_product_price {
+    font-weight: 650;
+    font-size: 17px;
+    text-align: left;
+
+}
+
+#swirl_section_main_div .swirl_ssv_description_product {
+    margin-top: -0px !important;
+}
+
+#swirl_section_main_div .swirl_ssv_description_product h3 {
+    text-align: left;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 400;
+    padding: 10px 15px 5px 15px;
+}
+
+#swirl_section_main_div .swirl_ssv_description_product p {
+    text-transform: none;
+    font-size: 13px;
+    text-align: left;
+    padding: 0px 15px;
+}
+
+#swirl_section_main_div .swirl_ssv_add_to_cart_btn_ssv {
+    border: 2px solid #323232;
+    background: none;
+    border-radius: 4px !important;
+    padding: 3px 7px !important;
+    font-size: 10px !important;
+    width: 100% !important;
+    height: 26px !important;
+    /* line-height: 20px !important; */
+    outline: none;
+    color: #323232 !important;
+    vertical-align: top;
+    margin: 0 !important;
+    margin-right: 6px !important;
+    text-align: center !important;
+    text-wrap: nowrap;
+}
+
+#swirl_section_main_div .swirl_ssv_right_column_main {
+    height: 100%;
+    overflow: auto;
+    overflow-x: hidden;
+}
+
+#swirl_section_main_div .swirl_ssv_buy_btn_ssv {
+    border: none;
+    border-radius: 4px !important;
+    padding: 3px 7px !important;
+    font-size: 10px !important;
+    width: 100% !important;
+    outline: none;
+    height: 26px !important;
+    /* line-height: 20px !important; */
+    background: #323232;
+    color: #fff;
+    vertical-align: top;
+    margin: 0 !important;
+    text-align: center !important;
+    text-wrap: nowrap;
+}
+
+#swirl_section_main_div .swirl_ssv_arrow_right {
+    cursor: pointer;
+    margin-left: auto;
+}
+
+#swirl_section_main_div .swirl_ssv_arrow_left svg {
+    cursor: pointer;
+    height: 36px;
+    width: 36px;
+}
+
+#swirl_section_main_div .swirl_ssv_title_product_desc {
+    font-weight: 600;
+    font-size: 16px;
+    text-align: left;
+}
+
+#swirl_section_main_div .swirl_ssv_column {
+    position: relative;
+}
+
+#swirl_section_main_div .slick-disabled {
+    opacity: 0;
+}
+
+#swirl_section_main_div .swirl_ssv_text_area {
+    /* display: block;
+    background-color: #eee;
+    outline: none;
+    width: 100%;
+    margin-top: 0px;
+    padding: 10px;
+    height: 100px;
+    font-size: 15px;
+    border-radius: 10px; */
+    font-size: 15px !important;
+    width: 100% !important;
+    height: 100px;
+    display: block !important;
+    border: none !important;
+    background: #eee !important;
+    padding: 10px 12px !important;
+    border-radius: 5px !important;
+    outline: 0 !important;
+    margin: 0 !important;
+    margin-top: 0px !important;
+
+}
+
+#swirl_section_main_div .swirl_ssv_video_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Adjust the background color and opacity as needed */
+    /* display: flex;
+    align-items: center;
+    justify-content: center; */
+    color: white;
+    overflow: hidden;
+    /* Set the text color */
+    font-size: 24px;
+    /* Adjust the font size */
+    /* Add any other styling you want for the overlay */
+}
+
+#swirl_section_main_div .swirl_ssv_play_btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background-color: rgb(0, 0, 0, .3);
+    margin-top: -39px;
+}
+
+#swirl_section_main_div .swirl_ssv_close_btn {
+    background-color: rgb(0, 0, 0, .6) !important;
+    border-radius: 50%;
+    margin-top: 10px;
+    margin-right: 10px;
+    height: 30px;
+    cursor: pointer;
+}
+
+#swirl_section_main_div .video_div {
+    width: 100%;
+    /* Ensure the video takes the full width */
+}
+
+
+#swirl_section_main_div .swirl_ssv_name_field {
+    padding: 10px;
+    width: 100%;
+    border: 0;
+    outline: none;
+    background-color: #eee;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+#swirl_section_main_div .swirl_ssv_modal_form {
+    padding: 10px;
+}
+
+#swirl_section_main_div .swirl_ssv_content {
+    width: 100px;
+    height: 100px;
+    background-color: blue;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    /* Apply transition to opacity and transform */
+    cursor: pointer;
+}
+
+#swirl_section_main_div .swirl_ssv_badge_products {
+    background-color: red;
+    z-index: 1000;
+}
+
+#swirl_section_main_div .swirl_ssv_image-container {
+    position: relative;
+    display: inline-block;
+    /* Ensures the container only takes as much space as the image */
+}
+
+
+
+#swirl_section_main_div .swirl_ssv_badge {
+    position: absolute;
+    margin-top: -67px;
+    right: -6px;
+    color: white;
+    border-radius: 50%;
+    /* height: 18px; */
+    /* width: 18px; */
+    align-items: center;
+    font-size: 13px;
+    text-align: center;
+    padding: 3px 6px;
+    height: 20px;
+    width: 20px;
+    line-height: 13px;
+}
+
+
+#swirl_section_main_div .swirl_ssv_video-container {
+    position: relative;
+}
+
+#swirl_section_main_div .swirl_ssv_pip-video {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 200px;
+    /* Set the desired width */
+    height: 300px;
+    /* Set the desired height */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+
+#swirl_section_main_div .content.hidden {
+    opacity: 0;
+    transform: scale(0.5);
+    /* You can adjust the scale or other transformations */
+    display: none;
+    /* Hides the element, adjust as needed */
+}
+
+#swirl_section_main_div .content.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#swirl_section_main_div .swirl_ssv_video_forword_ssv {
+    width: 30px;
+    cursor: pointer;
+}
+
+#swirl_section_main_div .swirl_ssv_playpausse_btn_carousel {
+    border-radius: 50%;
+    padding: 1px;
+    cursor: pointer;
+    width: 40px;
+    margin: 35px;
+}
+
+#swirl_section_main_div .swirl_ssv_right_bottom_icons_carousel {
+    height: 30px;
+    width: 30px;
+    background-color: rgba(0, 0, 0, .5);
+    border-radius: 50%;
+    padding: 0px;
+    margin: 10px;
+    cursor: pointer;
+    z-index: 1000000;
+
+}
+
+#swirl_section_main_div .swirl_ssv_share_icon {
+    padding: 8px;
+}
+
+#swirl_section_main_div .swirl_ssv_mute_icons {
+    padding: 5px;
+}
+
+#swirl_section_main_div .swirl_ssv_right_botttom_icn {
+    padding: 7%;
+}
+
+#swirl_section_main_div .swirl_ssv_prduct_on_right {
+    border-radius: 10px;
+}
+
+#swirl_section_main_div .swirl_ssv_contact-group {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+    width: 100%;
+}
+
+#swirl_section_main_div .swirl_ssv_country-select {
+    margin-right: 10px;
+    border: none;
+    outline: none;
+
+
+}
+
+#swirl_section_main_div .swirl_ssv_country-select select {
+    background-color: #eee;
+    padding: 10px;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+#swirl_section_main_div .swirl_ssv_phone-input input {
+    border: none;
+    background-color: #eee;
+    padding: 10px;
+    width: 100%;
+    outline: none;
+    display: block;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+#swirl_section_main_div .swirl_ssv_phone-input {
+    width: 100%;
+}
+
+#swirl_section_main_div .swirl_ssv_register_btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #8663D3;
+    border: none;
+    outline: none;
+    color: #fff;
+    border-radius: 5px;
+    font-size: 18px;
+}
+
+.swirl_ssv_box_register {
+    background-color: #ffff;
+    border-radius: 10px;
+}
+
+.swirl_ssv_box_register div {
+    border-bottom: 2px solid #eee;
+}
+
+/* .swirl_ssv_country-name {
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+
+} */
+
+.swirl_ssv_box_register hr {
+    display: none;
+}
+
+.swirl_ssv_box_register p {
+    padding-top: 7px !important;
+}
+
+#swirl_section_main_div input[type="range"]::-webkit-slider-thumb {
+    width: 0 !important;
+}
+
+#swirl_section_main_div input[type="range"]::-moz-range-thumb {
+    width: 0;
+}
+
+#swirl_section_main_div input[type="range"]::-ms-thumb {
+    width: 0;
+}
+
+#swirl_section_main_div .swirl_ssv_share_icons {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+
+}
+
+#swirl_section_main_div .swirl_ssv_share_icons a {
+    cursor: pointer;
+}
+
+#swirl_section_main_div #swirl_ssv_pip_video {
+    height: 300px;
+    width: 200px;
+}
+
+/* PIP */
+
+.video-pip-ssv {
+    height: 300px;
+    overflow: hidden;
+    width: auto;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 10px;
+    z-index: 121100000;
+    -webkit-box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+    box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+    display: none;
+}
+
+.video-pip-ssv video {
+    height: 100% !important;
+    width: auto !important;
+    display: block !important;
+}
+
+.video-pip-video-loader-ssv {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgb(0, 0, 0, .5);
+    display: flex;
+    align-items: center;
+    text-align: center;
+    z-index: 12;
+    display: none;
+}
+
+.video-pip-video-loader-ssv img {
+    width: 100% !important;
+    height: 90px !important;
+    object-fit: contain !important;
+}
+
+.video-pip-playpause-ssv {
+    position: absolute;
+    top: calc(50% - 15px);
+    left: calc(50% - 15px);
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    outline: none !important;
+    width: 30px;
+    height: 30px;
+    border-radius: 50% !important;
+    background: rgb(0, 0, 0, .6) !important;
+    /* display: none; */
+}
+
+.video-pip-playpause-ssv img {
+    margin: 0 auto !important;
+    width: 30px !important;
+    display: block !important;
+}
+
+.video-pip-volume-ssv {
+    position: absolute;
+    top: 10px;
+    right: 40px;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    outline: none !important;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgb(0, 0, 0, .6) !important;
+}
+
+.video-pip-volume-ssv img {
+    margin: 0 auto !important;
+    width: 13px !important;
+    margin-top: 1px !important;
+    display: block !important;
+}
+
+.video-pip-close-ssv {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    outline: none !important;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgb(0, 0, 0, .6) !important;
+}
+
+.video-pip-close-ssv img {
+    margin: 0 auto !important;
+    width: 25px !important;
+    display: block !important;
+}
+
+.video-pip-fullscreen-ssv {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    outline: none !important;
+    width: 25px;
+    height: 18px;
+    border: 2.5px solid #fff;
+}
+
+#swirl_section_main_div #pip-container {
+    position: absolute;
+    max-width: 200px;
+    bottom: 0;
+    right: 0;
+    margin: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 9999;
+    height: 300px;
+    overflow: hidden;
+    width: auto;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 10px;
+    z-index: 121100000;
+    -webkit-box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+    -moz-box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+    box-shadow: 0px 0px 12px 0px rgba(0, 0, 0, 0.5);
+}
+
+/* #pip-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+} */
+
+#swirl_section_main_div .swirl_ssv_discount_percent_badge {
+    margin-left: 8px;
+    margin-bottom: -0px;
+}
+
+#swirl_ssv_discount_percent_badge_sm {
+    margin-bottom: -7px !important;
+}
+
+#swirl_section_main_div .swirl_ssv_video-modal-share-modal-social-ssv {
+    height: 40px;
+}
+
+#swirl_section_main_div button {
+    cursor: pointer;
+}
+
+#swirl_section_main_div .swirl_ssv_down_arrow {
+    transform: rotate(-90deg);
+    margin: auto;
+}
+
+#swirl_section_main_div .swirl_ssv_products_slider_btn_next::before {
+    font-size: 30px !important;
+    margin-left: 53px;
+    color: rgba(0, 0, 0, 0.8);
+}
+
+#swirl_section_main_div .swirl_ssv_products_slider_btn_pre::before {
+    font-size: 30px !important;
+    margin-left: -43px;
+    color: rgba(0, 0, 0, 0.8);
+}
+
+/* @media only screen and (max-width: 1200px) {
+    #swirl_section_main_div .swirl_ssv_ssv_modal_square {
+        max-width: 80vh;
+    }
+} */
+
+/* @import url(https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.6.0/slick.min.css); */
+
+
+/* Slider */
+.slick-slider {
+    position: relative;
+
+    display: block;
+    box-sizing: border-box;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    -webkit-touch-callout: none;
+    -khtml-user-select: none;
+    -ms-touch-action: pan-y;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.slick-list {
+    position: relative;
+
+    display: block;
+    overflow: hidden;
+
+    margin: 0;
+    padding: 0;
+}
+
+.slick-list:focus {
+    outline: none;
+}
+
+.slick-list.dragging {
+    cursor: pointer;
+    cursor: hand;
+}
+
+.slick-slider .slick-track,
+.slick-slider .slick-list {
+    -webkit-transform: translate3d(0, 0, 0);
+    -moz-transform: translate3d(0, 0, 0);
+    -ms-transform: translate3d(0, 0, 0);
+    -o-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+}
+
+.slick-track {
+    position: relative;
+    top: 0;
+    left: 0;
+
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.slick-track:before,
+.slick-track:after {
+    display: table;
+
+    content: '';
+}
+
+.slick-track:after {
+    clear: both;
+}
+
+.slick-loading .slick-track {
+    visibility: hidden;
+}
+
+.slick-slide {
+    display: none;
+    float: left;
+
+    height: 100%;
+    min-height: 1px;
+}
+
+[dir='rtl'] .slick-slide {
+    float: right;
+}
+
+.slick-slide img {
+    display: block;
+}
+
+.slick-slide.slick-loading img {
+    display: none;
+}
+
+.slick-slide.dragging img {
+    pointer-events: none;
+}
+
+.slick-initialized .slick-slide {
+    display: block;
+}
+
+.slick-loading .slick-slide {
+    visibility: hidden;
+}
+
+.slick-vertical .slick-slide {
+    display: block;
+    height: auto;
+    border: 1px solid transparent;
+}
+
+.slick-arrow.slick-hidden {
+    display: none;
+}
+
+
+
+@media screen and (min-width: 1200px) and (max-width: 1500px) {
+    #swirl_section_main_div .swirl_ssv_ssv_modal_square {
+        max-width: 80vw;
+    }
+
+    .swirl_ssv_quantity_section p {
+        font-size: 15px !important;
+    }
+}
+
+@media screen and (min-width: 833px) and (max-width: 1500px) {
+    #swirl_section_main_div .swirl_ssv_ssv_modal_square {
+        width: 80vw !important;
+    }
+}
+
+@media only screen and (max-width: 1200px) {
+    .swirl_ssv_pre_next_elems {
+        display: none;
+    }
+
+    #swirl_section_main_div .swirl_ssv_ssv_modal_row {
+        padding: 0;
+    }
+
+    #swirl_section_main_div .swirl_ssv_ssv_modal_square {
+        max-width: 100vw;
+
+    }
+}
+
+.swirl_ssv_quantity_section_input {
+    max-width: 40px !important;
+    text-align: center !important;
+    background-color: #eee !important;
+    outline: none !important;
+    border: none !important;
+    margin: 0px 10px !important;
+    -moz-appearance: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border-radius: 0px !important;
+    padding: 10px 10px 10px 10px !important;
+}
+
+.swirl_ssv_quantity_section p {
+    font-weight: 400 !important;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    /* Firefox */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    /* Webkit browsers like Chrome and Safari */
+    margin: 0;
+    /* Removes the default margin */
+}
+
+.swirl_ssv_quantity_section {
+    border-top: 2px solid #eee;
+    border-bottom: 2px solid #eee;
+    padding: 10px 0px;
+    margin-top: 10px;
+    appearance: none;
+    color: #000 !important;
+}
+
+.swirl_ssv_quantity_section button {
+    appearance: none;
+    color: #000 !important;
+}
+
+@media only screen and (max-width: 556px) {
+
+    .swirl_ssv_quantity_section p {
+        font-size: 14px !important;
+    }
+
+
+}
+
+.swirl_ssv_quantity_section {
+    display: flex !important;
+    font-size: 13px !important;
+}
+
+.swirl_ssv_main_screen_arrow_icon {
+    height: 40px !important;
+    width: 40px !important;
+    z-index: 777 !important;
+}
+
+#swirl_section_main_div .swirl_ssv_main_screen_arrow_icon_next {
+    height: 40px !important;
+    width: 40px !important;
+    right: 25px !important;
+    z-index: 777 !important;
+}
+
+.swirl_col_2 p {
+    margin-bottom: 0px !important;
+}
+
+@media only screen and (max-width: 833px) {
+    .swirl_ssv_modal-wrapper {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+
+    .swirl_ssv_quantity_section input,
+    .swirl_ssv_quantity_section button {
+        -moz-appearance: none;
+        -webkit-appearance: none;
+        appearance: none;
+        opacity: 1;
+        font-weight: 400 !important;
+
+    }
+
+    .swirl_ssv_ssv_modal_square {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+
+    .swirl_ssv_row {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .swirl_ssv_ssv_modal_row {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .swirl_ssv_right_column_main {
+        display: none !important;
+    }
+
+
+    #swirl_section_main_div .slick-slider .slick-track,
+    #swirl_section_main_div .slick-slider .slick-list,
+    #swirl_section_main_div .slick-slider .slick-slide {
+        max-height: 100% !important;
+    }
+
+    .swirl_ssv_column {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    #swirl_section_main_div .slick-slide>div {
+        height: 100% !important;
+    }
+
+    /* .slick-arrow::before {
+        display: none !important;
+    } */
+    #swirl_section_main_div #pip-container {
+        height: 200px !important;
+    }
+
+    .video-pip-ssv {
+        height: 200px !important;
+    }
+
+    .swirl_ssv_test_new_btn {
+        display: none !important;
+    }
+}
+
+
+
+
+/* @media only screen and (max-width: 833px) {
+
+    #swirl_section_main_div{
+        height: 100vh;
+    }
+    #swirl_section_main_div .swirl_ssv_modal-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+    #swirl_section_main_div .swirl_ssv_right_section_display_none {
+        display: none;
+    }
+
+    #swirl_section_main_div .video-pip-ssv {
+        height: 100%;
+    }
+
+    #swirl_section_main_div .slick-slider .slick-track,
+    #swirl_section_main_div .slick-slider .slick-list,
+    #swirl_section_main_div .slick-slider .slick-slide {
+        height: 100% !important;
+    }
+
+    #swirl_section_main_div .swirl_ssv_column {
+        width: 100vw !important;
+        height: 100%;
+    }
+
+    #swirl_section_main_div .swirl_ssv_ssv_modal_square {
+        width: 100vw !important;
+        height: 100%;
+    }
+
+    #swirl_section_main_div .swirl_ssv_test_new_btn {
+        display: none !important;
+    }
+} */
