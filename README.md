@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-# react-short-video-plugin
-=======
 # swirl-ssv
 
 > This is a package for swirl short videos which can be installed and used in react projects.
@@ -51,4 +48,3 @@ export default YourComponent
 ## License
 
 MIT © [goswirl-github](https://github.com/SwirlAdmin/react-short-video-plugin.git)
->>>>>>> Stashed changes

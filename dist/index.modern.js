@@ -2,8 +2,6 @@ import React, { useState, useRef, useCallback, useEffect, Fragment } from 'react
 import Slider from 'react-slick';
 import axios from 'axios';
 
-var styles = {"test":"_3ybTi"};
-
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function (target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -51,6 +49,181 @@ function _finallyRethrows(body, finalizer) {
 	return finalizer(false, result);
 }
 
+var initializeVideoData = function initializeVideoData(videoId, videoUrl) {
+  try {
+    var _videoDataArray, _allDataofSwirls$swil, _allDataofSwirls$swil2, _allDataofSwirls$swil3, _allDataofSwirls$swil4, _allDataofSwirls$swil5, _allDataofSwirls$swil6, _allDataofSwirls$swil7;
+    var viewCounted = false;
+    var existingVideoData = (_videoDataArray = videoDataArray) === null || _videoDataArray === void 0 ? void 0 : _videoDataArray.find(function (data) {
+      return (data === null || data === void 0 ? void 0 : data.id) === videoId;
+    });
+    var swirlData = localStorage.getItem("_ssv_storeResponseData", JSON.stringify(ssv_responseData));
+    var allDataofSwirls = JSON.parse(swirlData);
+    var videoElement = document.getElementById(videoId);
+    var videoData = existingVideoData || {
+      id: videoId,
+      url: videoUrl,
+      unique_views: 0,
+      watch_time: 0,
+      brand_id: (_allDataofSwirls$swil = allDataofSwirls.swilrs) === null || _allDataofSwirls$swil === void 0 ? void 0 : _allDataofSwirls$swil.data.brand_id,
+      total_views: 0,
+      duration: allDataofSwirls === null || allDataofSwirls === void 0 ? void 0 : (_allDataofSwirls$swil2 = allDataofSwirls.swilrs) === null || _allDataofSwirls$swil2 === void 0 ? void 0 : (_allDataofSwirls$swil3 = _allDataofSwirls$swil2.video) === null || _allDataofSwirls$swil3 === void 0 ? void 0 : (_allDataofSwirls$swil4 = _allDataofSwirls$swil3.find(function (el) {
+        return el.server_url == videoUrl;
+      })) === null || _allDataofSwirls$swil4 === void 0 ? void 0 : _allDataofSwirls$swil4.video_len,
+      video_title: allDataofSwirls === null || allDataofSwirls === void 0 ? void 0 : (_allDataofSwirls$swil5 = allDataofSwirls.swilrs) === null || _allDataofSwirls$swil5 === void 0 ? void 0 : (_allDataofSwirls$swil6 = _allDataofSwirls$swil5.video) === null || _allDataofSwirls$swil6 === void 0 ? void 0 : (_allDataofSwirls$swil7 = _allDataofSwirls$swil6.find(function (el) {
+        return el.server_url == videoUrl;
+      })) === null || _allDataofSwirls$swil7 === void 0 ? void 0 : _allDataofSwirls$swil7.video_title,
+      drop_of_point: [],
+      skip_points: [],
+      segments: [],
+      location_details: {},
+      system_detail: {
+        swirl_machine_id: generateUUID(),
+        device_type: getDeviceType()
+      }
+    };
+    initializeSegments(videoData);
+    if (currentVideoTimer) {
+      clearInterval(currentVideoTimer);
+    }
+    if (existingVideoData) {
+      videoData.watch_time = parseInt(existingVideoData.watch_time || 0, 10);
+    }
+    videoElement.addEventListener("timeupdate", function () {
+      var currentTime = Math.floor(videoElement.currentTime);
+      var currentSegment = videoData.segments.find(function (segment) {
+        return currentTime >= segment.start && currentTime <= segment.end;
+      });
+      if (currentTime != 0 && !viewCounted) {
+        videoData.unique_views = 1;
+        videoData.total_views += 1;
+        viewCounted = true;
+        localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+      }
+    });
+    currentVideoTimer = setInterval(function () {
+      if (!videoElement.paused) {
+        videoData.watch_time += 1;
+        localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+      }
+    }, 1000);
+    videoElement.addEventListener("pause", function () {
+      var currentTime = Math.floor(videoElement.currentTime);
+      var currentSegment = videoData.segments.find(function (segment) {
+        return currentTime >= segment.start && currentTime <= segment.end;
+      });
+      if (currentSegment) {
+        videoData.drop_of_point.push({
+          segment_id: currentSegment.segment_id,
+          timestamp: currentTime
+        });
+        localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+      }
+    });
+    videoElement.addEventListener("seeked", function () {
+      var _videoData$segments;
+      var skipTime = Math.floor(videoElement.currentTime);
+      var currentSegment = videoData === null || videoData === void 0 ? void 0 : (_videoData$segments = videoData.segments) === null || _videoData$segments === void 0 ? void 0 : _videoData$segments.find(function (segment) {
+        return skipTime >= (segment === null || segment === void 0 ? void 0 : segment.start) && skipTime <= (segment === null || segment === void 0 ? void 0 : segment.end);
+      });
+      if (currentSegment) {
+        var _videoData$skip_point, _videoData$skip_point2;
+        if ((videoData === null || videoData === void 0 ? void 0 : (_videoData$skip_point = videoData.skip_points) === null || _videoData$skip_point === void 0 ? void 0 : _videoData$skip_point.length) === 0 || videoData !== null && videoData !== void 0 && videoData.skip_points[(videoData === null || videoData === void 0 ? void 0 : (_videoData$skip_point2 = videoData.skip_points) === null || _videoData$skip_point2 === void 0 ? void 0 : _videoData$skip_point2.length) - 1].to) {
+          videoData.skip_points.push({
+            from: {
+              segmentId: currentSegment === null || currentSegment === void 0 ? void 0 : currentSegment.segmentId,
+              timeStamp: skipTime
+            },
+            to: null
+          });
+        } else {
+          videoData.skip_points[videoData.skip_points.length - 1].to = {
+            segmentId: currentSegment.segmentId,
+            timeStamp: skipTime
+          };
+        }
+        localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+      }
+    });
+    if (existingVideoData) {
+      Object.assign(existingVideoData, videoData);
+    } else {
+      videoDataArray.push(videoData);
+    }
+    return Promise.resolve();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+var videoDataArray = [];
+var currentVideoTimer = null;
+var substring_to_remove = "modalVideossv-";
+window.addEventListener("unload", function () {
+  var analyticsDataString = localStorage.getItem("_all_video_data");
+  if (analyticsDataString) {
+    try {
+      var analyticsData = JSON.parse(analyticsDataString);
+      localStorage.removeItem("_all_video_data");
+      var updatedData = analyticsData === null || analyticsData === void 0 ? void 0 : analyticsData.map(function (i) {
+        try {
+          i.video_id = i.id.replace(substring_to_remove, "");
+          return Promise.resolve(i);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      });
+      if (updatedData) {
+        try {
+          var success = navigator.sendBeacon("https://analytics-api.goswirl.live/engagement/onclose", JSON.stringify(analyticsData));
+          if (!success) {
+            throw new Error("Beacon transmission failed");
+          }
+          localStorage.removeItem("_all_video_data");
+        } catch (error) {
+          console.error("Error sending data:", error);
+        }
+      }
+    } catch (error) {
+      localStorage.removeItem("_all_video_data");
+      console.error("Error parsing analytics data:", error);
+    }
+  }
+});
+var ssv_responseData = JSON.parse(localStorage.getItem("_ssv_storeResponseData")) || {};
+function initializeSegments(videoData) {
+  var segmentDuration = 3;
+  for (var i = 0; i < Math.ceil(videoData.duration / segmentDuration); i++) {
+    videoData.segments.push({
+      segment_id: i + 1,
+      start: i * segmentDuration,
+      end: Math.min((i + 1) * segmentDuration, videoData.duration)
+    });
+  }
+}
+function generateUUID() {
+  var d = new Date().getTime();
+  var d2 = typeof performance !== "undefined" && performance.now && performance.now() * 1000 || 0;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = Math.random() * 16;
+    if (d > 0) {
+      r = (d + r) % 16 | 0;
+      d = Math.floor(d / 16);
+    } else {
+      r = (d2 + r) % 16 | 0;
+      d2 = Math.floor(d2 / 16);
+    }
+    return (c === "x" ? r : r & 0x3 | 0x8).toString(16);
+  });
+}
+function getDeviceType() {
+  var screenWidth = window.innerWidth;
+  if (screenWidth <= 767) {
+    return "Mobile";
+  } else if (screenWidth >= 768 && screenWidth <= 1024) {
+    return "Tablet";
+  } else {
+    return "Desktop";
+  }
+}
 function disableScrollssv() {
   var scrollPosition = [window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft, window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop];
   var html = document.documentElement;
@@ -83,17 +256,23 @@ var Modal = function Modal(_ref) {
   var children = _ref.children,
     show = _ref.show,
     onClose = _ref.onClose;
-  return show && /*#__PURE__*/React.createElement("div", {
-    id: "swil_ssv_modal_div"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "swirl_ssv_modal-backdrop",
-    onClick: onClose
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "swirl_ssv_modal-wrapper",
-    style: {
-      backgroundColor: "rgba(0,0,0,0.9"
-    }
-  }, children));
+  return (
+    /*#__PURE__*/
+    React.createElement("div", {
+      id: "swil_ssv_modal_div",
+      style: {
+        display: show ? "block" : "none"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "swirl_ssv_modal-backdrop",
+      onClick: onClose
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "swirl_ssv_modal-wrapper",
+      style: {
+        backgroundColor: "rgba(0,0,0,0.9"
+      }
+    }, children))
+  );
 };
 var ErrorBox = function ErrorBox(_ref2) {
   var errorMessage = _ref2.errorMessage,
@@ -253,6 +432,7 @@ var VideoComponent = function VideoComponent(_ref4) {
     index = _ref4.index,
     windowWidth = _ref4.windowWidth,
     swirlData = _ref4.swirlData,
+    removePointerEventsFromHeart = _ref4.removePointerEventsFromHeart,
     setPipDisplay = _ref4.setPipDisplay,
     dataWs = _ref4.dataWs,
     isVisibleMsg = _ref4.isVisibleMsg,
@@ -265,14 +445,15 @@ var VideoComponent = function VideoComponent(_ref4) {
     loadingbtnId = _ref4.loadingbtnId,
     setLoadingbtnId = _ref4.setLoadingbtnId,
     wishlistData = _ref4.wishlistData,
-    getWishlistDetails = _ref4.getWishlistDetails,
     removeFromWatchList = _ref4.removeFromWatchList,
     swipeStatus = _ref4.swipeStatus,
     setSwipeStatus = _ref4.setSwipeStatus,
-    getAvailabiityCheck = _ref4.getAvailabiityCheck,
-    cart = _ref4.cart,
+    getAvailabiityCheckAndVarientInfo = _ref4.getAvailabiityCheckAndVarientInfo,
+    swProps = _ref4.swProps,
     checkProductStock = _ref4.checkProductStock,
-    CHeckShouldAddOrNotToCart = _ref4.CHeckShouldAddOrNotToCart;
+    CHeckShouldAddOrNotToCart = _ref4.CHeckShouldAddOrNotToCart,
+    show = _ref4.show,
+    buyNowClick = _ref4.buyNowClick;
   var swirlSettings = swirlData === null || swirlData === void 0 ? void 0 : swirlData.data;
   var videoRef = useRef(null);
   var _useState = useState(true),
@@ -326,6 +507,20 @@ var VideoComponent = function VideoComponent(_ref4) {
   var productRef = useRef();
   var productDrawerRef = useRef();
   var registerModalRef = useRef();
+  var productSectionRefForDrawer = useRef();
+  useEffect(function () {
+    if (show) {
+      if (active === index) {
+        if (videoRef.current.paused) {
+          videoRef.current.play();
+        }
+      }
+    } else {
+      if (!videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+    }
+  }, [active, index, show]);
   useEffect(function () {
     var handleClickOutside = function handleClickOutside(event) {
       if (modalRef.current && !modalRef.current.contains(event.target) && askbtnref.current && !askbtnref.current.contains(event.target) && registerModalRef.current && !registerModalRef.current.contains(event.target)) {
@@ -334,13 +529,16 @@ var VideoComponent = function VideoComponent(_ref4) {
       if (shareModalRef.current && !shareModalRef.current.contains(event.target) && shareBtnRef.current && !shareBtnRef.current.contains(event.target)) {
         setShareDrawerOnOrOff(false);
       }
+      if (productDrawerRef.current && productDrawerRef.current.contains(event.target) && productSectionRefForDrawer.current && !productSectionRefForDrawer.current.contains(event.target)) {
+        setProductDetailDrawer(false);
+        onOffSLideMoves();
+      }
     };
-    if (isDrawerOpen || shareDrawerOnOrOff) {
-      document.addEventListener('click', handleClickOutside);
+    if (isDrawerOpen || shareDrawerOnOrOff || productDetalDrawer) {
+      document.addEventListener("click", handleClickOutside);
     }
-    console.log(productDetalDrawer);
     return function () {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [isDrawerOpen, setIsDrawerOpen, shareDrawerOnOrOff, setShareDrawerOnOrOff, productDetalDrawer]);
   var handleVideoEnd = function handleVideoEnd() {
@@ -419,14 +617,14 @@ var VideoComponent = function VideoComponent(_ref4) {
                 console.log("success");
                 setErrorMessage("Your query is submitted.Thank You!");
                 setIsVisibleMsg(true);
+                toggleDrawer();
+                setMsg("");
+                e.target.reset();
               } else {
                 console.log("error");
                 setErrorMessage("Something went wrong, Please try again!");
                 setIsVisibleMsg(true);
               }
-              toggleDrawer();
-              setMsg();
-              e.target.reset();
             });
           }, function (error) {
             console.log(error);
@@ -540,23 +738,29 @@ var VideoComponent = function VideoComponent(_ref4) {
     }
   }, [swirlSettings]);
   var handleSubmit = function handleSubmit(e) {
-    e.preventDefault();
-    if (userData.username === "" || userData.userphone === "" || userData.userphonecode === "") {
-      setErrorMessage("Please fill all the field");
-      setIsVisibleMsg(true);
-    } else {
-      var _userData$userphone;
-      if ((userData === null || userData === void 0 ? void 0 : (_userData$userphone = userData.userphone) === null || _userData$userphone === void 0 ? void 0 : _userData$userphone.length) === 10) {
-        localStorage.setItem("userData", JSON.stringify(userData));
-        toggleVisibilityModal();
-        var sendBtn = document.getElementById('asq_query_send_btn');
-        if (sendBtn) {
-          sendBtn.click();
+    try {
+      e.preventDefault();
+      var _temp4 = function () {
+        if (userData.username === "" || userData.userphone === "" || userData.userphonecode === "") {
+          setErrorMessage("Please fill all the field");
+          setIsVisibleMsg(true);
+        } else {
+          var _temp3 = function (_userData$userphone) {
+            if ((userData === null || userData === void 0 ? void 0 : (_userData$userphone = userData.userphone) === null || _userData$userphone === void 0 ? void 0 : _userData$userphone.length) === 10) {
+              localStorage.setItem("userData", JSON.stringify(userData));
+              toggleVisibilityModal();
+              return Promise.resolve(askQuestionFunction(e)).then(function () {});
+            } else {
+              setErrorMessage("Invalid mobile number!");
+              setIsVisibleMsg(true);
+            }
+          }();
+          if (_temp3 && _temp3.then) return _temp3.then(function () {});
         }
-      } else {
-        setErrorMessage("Invalid mobile number!");
-        setIsVisibleMsg(true);
-      }
+      }();
+      return Promise.resolve(_temp4 && _temp4.then ? _temp4.then(function () {}) : void 0);
+    } catch (e) {
+      return Promise.reject(e);
     }
   };
   var settings3 = {
@@ -580,11 +784,11 @@ var VideoComponent = function VideoComponent(_ref4) {
   };
   var addTocartClicked2 = useCallback(function (skuCode, quantity) {
     try {
-      var _temp7 = function () {
+      var _temp6 = function () {
         if (dataWs === "0") {
-          console.log("Logic running of add to cart for dataws0");
-          var _temp3 = _catch(function () {
-            return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
+          console.log("running for 0");
+          var _temp5 = _catch(function () {
+            return Promise.resolve(getAvailabiityCheckAndVarientInfo(skuCode)).then(function (isAvailable) {
               var shouldAdd = CHeckShouldAddOrNotToCart(skuCode);
               if (shouldAdd) {
                 if (isAvailable.status === "instock") {
@@ -592,12 +796,15 @@ var VideoComponent = function VideoComponent(_ref4) {
                     detail: JSON.stringify({
                       type: "SimpleProduct",
                       sku: skuCode,
-                      qty: quantityForAddToCart
+                      qty: quantityForAddToCart,
+                      varient: isAvailable.varient ? isAvailable.varient : null
                     })
                   });
+                  console.log(event);
                   window.dispatchEvent(event);
                   setErrorMessage("Item added to Cart");
                   setIsVisibleMsg(true);
+                  setQantityForAddToCart(1);
                 } else if (isAvailable.status === "outofstock") {
                   setErrorMessage("This item is out of stock");
                   setIsVisibleMsg(true);
@@ -615,159 +822,79 @@ var VideoComponent = function VideoComponent(_ref4) {
             setErrorMessage("Something went wrong, Please try again!");
             setIsVisibleMsg(true);
           });
-          if (_temp3 && _temp3.then) return _temp3.then(function () {});
+          if (_temp5 && _temp5.then) return _temp5.then(function () {});
         } else {
-          var _temp8 = function () {
-            if (dataWs === "1") {
-              console.log("Logic running of add to cart for dataws1");
-              var _temp4 = _catch(function () {
-                return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
-                  if (isAvailable.status === "instock") {
-                    var event = new CustomEvent("ADDED_TO_CART", {
-                      detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        qty: quantityForAddToCart
-                      })
-                    });
-                    window.dispatchEvent(event);
-                    setErrorMessage("Item added to cart");
-                    setIsVisibleMsg(true);
-                  } else if (isAvailable.status === "outofstock") {
-                    setErrorMessage("This item is out of stock");
-                    setIsVisibleMsg(true);
-                  } else {
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                  }
-                });
-              }, function (error) {
-                console.error("error", error);
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-              });
-              if (_temp4 && _temp4.then) return _temp4.then(function () {});
-            } else {
-              console.log("Logic running of add to cart for no dataws");
-              var _temp5 = _catch(function () {
-                return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
-                  if (isAvailable.status === "instock") {
-                    var event = new CustomEvent("ADDED_TO_CART", {
-                      detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        qty: quantityForAddToCart
-                      })
-                    });
-                    window.dispatchEvent(event);
-                    setErrorMessage("Item added to cart");
-                    setIsVisibleMsg(true);
-                  } else if (isAvailable.status === "outofstock") {
-                    setErrorMessage("This item is out of stock");
-                    setIsVisibleMsg(true);
-                  } else {
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                  }
-                });
-              }, function (error) {
-                console.error("error", error);
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-              });
-              if (_temp5 && _temp5.then) return _temp5.then(function () {});
-            }
-          }();
-          if (_temp8 && _temp8.then) return _temp8.then(function () {});
+          console.log("Logic running of add to cart for no dataws");
         }
       }();
-      return Promise.resolve(_temp7 && _temp7.then ? _temp7.then(function () {}) : void 0);
+      return Promise.resolve(_temp6 && _temp6.then ? _temp6.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [quantityForAddToCart, dataWs, setErrorMessage, setIsVisibleMsg, getAvailabiityCheck, CHeckShouldAddOrNotToCart]);
+  }, [quantityForAddToCart, dataWs, getAvailabiityCheckAndVarientInfo, CHeckShouldAddOrNotToCart]);
   var addToWatchListClicked2 = function addToWatchListClicked2(skuCode) {
-    if (dataWs === "0") {
-      console.log("Logic running of wishlist for dataws0");
-      try {
-        var event = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        console.log(event);
-        window.dispatchEvent(event);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+    var check = checkInWishListOrNot(wishlistData, skuCode);
+    if (!(check !== null && check !== void 0 && check.status)) {
+      if (dataWs === "0") {
+        console.log("Logic running of wishlist for dataws0");
+        try {
+          var event = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(event);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
+          }
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
+      } else if (dataWs === "1") {
+        console.log("Logic running of wishlist for dataws1");
+        try {
+          var _event = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(_event);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
           }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
-      }
-    } else if (dataWs === "1") {
-      console.log("Logic running of wishlist for dataws1");
-      try {
-        var _event = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        window.dispatchEvent(_event);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
+      } else {
+        console.log("Logic running of wishlist for no dataws");
+        try {
+          var _event2 = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(_event2);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
           }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
-      }
-    } else {
-      console.log("Logic running of wishlist for no dataws");
-      try {
-        var _event2 = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        window.dispatchEvent(_event2);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
       }
     }
   };
@@ -779,7 +906,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       formData.append("user_id", "");
       formData.append("video_id", vId);
       formData.append("type", cType);
-      var _temp9 = _catch(function () {
+      var _temp7 = _catch(function () {
         return Promise.resolve(axios.post("https://api.goswirl.live/index.php/shopify/actionbuttons", formData, {
           headers: {
             "Content-Type": "multipart/form-data"
@@ -788,7 +915,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       }, function (error) {
         console.error("SWIRL CTA Track failed!", error);
       });
-      return Promise.resolve(_temp9 && _temp9.then ? _temp9.then(function () {}) : void 0);
+      return Promise.resolve(_temp7 && _temp7.then ? _temp7.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -805,6 +932,36 @@ var VideoComponent = function VideoComponent(_ref4) {
       return "Invalid prices";
     }
   };
+  useEffect(function () {
+    if (show && active === index) {
+      initializeVideoData("modalVideossv-" + (thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id), thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_url);
+    }
+  }, [show, active]);
+  useEffect(function () {
+    var checkPlayingVideos = function checkPlayingVideos() {
+      var div = document.querySelector('#swirl_section_main_div');
+      if (!div) return;
+      var videos = div.querySelectorAll('video');
+      var playingVideos = Array.from(videos).filter(function (video) {
+        return !video.paused && !video.ended && video.currentTime > 0;
+      });
+      if (show && active === index) {
+        playingVideos === null || playingVideos === void 0 ? void 0 : playingVideos.map(function (video) {
+          var id = video.id.replace('modalVideossv-', '');
+          if (id === thisVideo.video_id) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
+      }
+    };
+    checkPlayingVideos();
+    var intervalId = setInterval(checkPlayingVideos, 1000);
+    return function () {
+      return clearInterval(intervalId);
+    };
+  }, [show, active, index]);
   return /*#__PURE__*/React.createElement("div", {
     onMouseEnter: handleHover,
     onTouchStart: handleHover,
@@ -821,17 +978,24 @@ var VideoComponent = function VideoComponent(_ref4) {
   }, /*#__PURE__*/React.createElement("video", {
     className: "swirl_ssv_video_div",
     ref: videoRef,
+    id: "modalVideossv-" + (thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id),
     onEnded: handleVideoEnd,
     preload: "metadata",
     autoPlay: active === index ? true : false,
     loop: true,
+    style: {
+      objectFit: thisVideo.is_landscape == 1 ? "fill" : "contain"
+    },
     playsInline: true,
     muted: muted
   }, /*#__PURE__*/React.createElement("source", {
     src: videoLink,
     type: "video/mp4"
   }), "Your browser does not support the video tag."), /*#__PURE__*/React.createElement("div", {
-    className: "swirl_ssv_video_overlay"
+    className: "swirl_ssv_video_overlay",
+    style: {
+      willChange: "transform"
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: "100%",
@@ -949,6 +1113,7 @@ var VideoComponent = function VideoComponent(_ref4) {
   }, /*#__PURE__*/React.createElement("textarea", {
     placeholder: "Enter query here",
     className: "swirl_ssv_text_area",
+    value: msg,
     rows: 5,
     onChange: function onChange(e) {
       return setMsg(e.target.value);
@@ -1033,13 +1198,26 @@ var VideoComponent = function VideoComponent(_ref4) {
   })), /*#__PURE__*/React.createElement("a", {
     href: "https://twitter.com/share?url=" + this_page_url + "?swirl_video=" + window.btoa(thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id),
     target: "_blank",
-    rel: "noreferrer"
-  }, /*#__PURE__*/React.createElement("img", {
-    className: "swirl_ssv_video-modal-share-modal-social-ssv",
-    src: "https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/twitter.webp",
-    alt: "Twitter icon",
-    title: "Share on Twitter"
-  })), /*#__PURE__*/React.createElement("a", {
+    rel: "noreferrer",
+    title: "Share to X"
+  }, /*#__PURE__*/React.createElement("svg", {
+    style: {
+      marginTop: '3px'
+    },
+    width: "34",
+    height: "34",
+    viewBox: "0 0 36 36",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, /*#__PURE__*/React.createElement("rect", {
+    width: "36",
+    height: "36",
+    rx: "18",
+    fill: "#E8E8E8"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M15.222 11.0555H10.3608L16.0975 18.7045L10.6733 24.9444H12.5136L16.9499 19.841L20.7775 24.9444H25.6386L19.6606 16.9738L24.8054 11.0555H22.9651L18.8083 15.8373L15.222 11.0555ZM21.472 23.5555L13.1386 12.4444H14.5275L22.8608 23.5555H21.472Z",
+    fill: "#747477"
+  }))), /*#__PURE__*/React.createElement("a", {
     href: "https://api.whatsapp.com/send?text=" + this_page_url + "?swirl_video=" + window.btoa(thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id),
     target: "_blank",
     rel: "noreferrer"
@@ -1078,7 +1256,8 @@ var VideoComponent = function VideoComponent(_ref4) {
       position: "absolute",
       bottom: windowWidth < 833 ? (thisVideo === null || thisVideo === void 0 ? void 0 : (_thisVideo$product = thisVideo.product) === null || _thisVideo$product === void 0 ? void 0 : _thisVideo$product.length) === 0 ? 19 : 130 : 19,
       right: 10,
-      padding: "10px 0px"
+      padding: "10px 0px",
+      willChange: "transform"
     }
   }, swirlSettings.download_icon === 1 ? /*#__PURE__*/React.createElement("div", {
     className: "swirl_ssv_right_botttom_icn"
@@ -1133,7 +1312,10 @@ var VideoComponent = function VideoComponent(_ref4) {
     }
   }, !muted ? "Mute" : "Unmute")), /*#__PURE__*/React.createElement("div", {
     className: "swirl_ssv_right_botttom_icn",
-    ref: shareBtnRef
+    ref: shareBtnRef,
+    style: {
+      willChange: "transform"
+    }
   }, /*#__PURE__*/React.createElement("img", {
     className: "swirl_ssv_right_bottom_icons_carousel share_icon ",
     style: {
@@ -1153,8 +1335,9 @@ var VideoComponent = function VideoComponent(_ref4) {
   }, "Share"))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: "absolute",
-      bottom: windowWidth < 833 && thisVideo.product.length > 0 ? "120px" : "30px",
-      width: "100%"
+      bottom: windowWidth < 833 && thisVideo.product.length > 0 ? "130px" : "30px",
+      width: "100%",
+      cursor: "pointer"
     }
   }, /*#__PURE__*/React.createElement("progress", {
     min: 0,
@@ -1300,23 +1483,28 @@ var VideoComponent = function VideoComponent(_ref4) {
   })), thisVideo.product.length > 0 ? /*#__PURE__*/React.createElement("div", {
     ref: productDrawerRef,
     style: {
-      height: productDetalDrawer ? "360px" : "0px",
+      height: productDetalDrawer ? "100%" : "0px",
       display: "flex",
       flexDirection: "column",
       justifyContent: "space-between",
-      backgroundColor: "rgb(255,255,255)",
+      backgroundColor: "transparent",
       zIndex: "10000000",
       position: "absolute",
       bottom: "0",
       left: "0",
       right: "0",
-      transition: "height 0.3s ease, max-height 3s ease"
+      transition: "height 0.6s ease, max-height 0.6s ease"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: productSectionRefForDrawer,
+    style: {
+      height: "360x",
+      marginTop: "auto",
+      backgroundColor: "rgb(255,255,255)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      borderBottom: "1px solid #eee",
-      padding: "10px",
-      cursor: "pointer"
+      padding: "10px"
     },
     onClick: function onClick() {
       handleProductDetailDrawer();
@@ -1330,7 +1518,8 @@ var VideoComponent = function VideoComponent(_ref4) {
       height: "auto",
       overflow: "auto",
       maxHeight: "400px",
-      overflowX: "auto"
+      overflowX: "auto",
+      backgroundColor: "rgb(255,255,255)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1414,7 +1603,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       margin: "0"
     }
   }, countPercentage(), " OFF"))) : ""), /*#__PURE__*/React.createElement("div", {
-    className: "swirl_col_3",
+    className: "swirl_col_3  swirl_ssv_wishlist_heart",
     style: {
       width: "10%",
       display: "grid",
@@ -1426,11 +1615,15 @@ var VideoComponent = function VideoComponent(_ref4) {
         var _checkInWishListOrNo$;
         removeFromWatchList(checkInWishListOrNo === null || checkInWishListOrNo === void 0 ? void 0 : (_checkInWishListOrNo$ = checkInWishListOrNo.obj) === null || _checkInWishListOrNo$ === void 0 ? void 0 : _checkInWishListOrNo$.id);
       } else {
-        if (cart !== null && cart !== void 0 && cart.token) {
+        if (swProps !== null && swProps !== void 0 && swProps.token) {
+          removePointerEventsFromHeart();
           addToWatchListClicked2(productData === null || productData === void 0 ? void 0 : productData.sku_code);
+          console.log("5");
         } else {
-          onClose();
           addToWatchListClicked2(productData === null || productData === void 0 ? void 0 : productData.sku_code);
+          removePointerEventsFromHeart();
+          console.log("6");
+          onClose();
         }
       }
     }
@@ -1535,7 +1728,8 @@ var VideoComponent = function VideoComponent(_ref4) {
     }
   }, "+")))), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "10px"
+      padding: "10px",
+      backgroundColor: "rgb(255,255,255)"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1572,7 +1766,7 @@ var VideoComponent = function VideoComponent(_ref4) {
     onClick: function onClick() {
       CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, productData.product_id, thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id, "1");
       onClose();
-      window.open(productData === null || productData === void 0 ? void 0 : productData.url);
+      buyNowClick(productData === null || productData === void 0 ? void 0 : productData.sku_code);
     },
     style: {
       width: "100%",
@@ -1616,7 +1810,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       display: "grid",
       placeItems: "center"
     }
-  }, quantity ? quantity : "0")) : ""))) : "", /*#__PURE__*/React.createElement("div", {
+  }, quantity ? quantity : "0")) : "")))) : "", /*#__PURE__*/React.createElement("div", {
     style: {
       display: windowWidth < 833 && thisVideo.product.length > 0 ? "block" : "none"
     }
@@ -1628,6 +1822,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       backgroundColor: "rgb(255,255,255,.8)",
       borderRadius: "10px",
       position: "absolute",
+      willChange: "transform",
       bottom: "15px",
       left: "0",
       right: "0",
@@ -1781,7 +1976,7 @@ var VideoComponent = function VideoComponent(_ref4) {
       onClick: function onClick() {
         CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, el.product_id, thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.video_id, "1");
         onClose();
-        window.open(el === null || el === void 0 ? void 0 : el.url);
+        buyNowClick(el.sku_code);
       },
       className: "swirl_ssv_buy_btn_ssv",
       style: {
@@ -1796,6 +1991,7 @@ var VideoComponent = function VideoComponent(_ref4) {
 var ProductDescComp = function ProductDescComp(_ref5) {
   var _el$product$, _el$product$2, _el$product$3, _el$product$4;
   var swirlSettings = _ref5.swirlSettings,
+    removePointerEventsFromHeart = _ref5.removePointerEventsFromHeart,
     descriptionData = _ref5.descriptionData,
     el = _ref5.el,
     addToWatchListClicked = _ref5.addToWatchListClicked,
@@ -1812,7 +2008,7 @@ var ProductDescComp = function ProductDescComp(_ref5) {
     loadingbtnId = _ref5.loadingbtnId,
     setLoadingbtnId = _ref5.setLoadingbtnId,
     wishlistData = _ref5.wishlistData,
-    cart = _ref5.cart;
+    swProps = _ref5.swProps;
   var checkInWishListOrNo = checkInWishListOrNot(wishlistData, el === null || el === void 0 ? void 0 : el.product[0].sku_code);
   var countPercentage = function countPercentage() {
     var actualPrice = el.product[0].price;
@@ -1938,11 +2134,13 @@ var ProductDescComp = function ProductDescComp(_ref5) {
         var _checkInWishListOrNo$2;
         removeFromWatchList(checkInWishListOrNo === null || checkInWishListOrNo === void 0 ? void 0 : (_checkInWishListOrNo$2 = checkInWishListOrNo.obj) === null || _checkInWishListOrNo$2 === void 0 ? void 0 : _checkInWishListOrNo$2.id);
       } else {
-        if (cart !== null && cart !== void 0 && cart.token) {
+        if (swProps !== null && swProps !== void 0 && swProps.token) {
           addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code, 1);
+          console.log("7");
         } else {
           onClose();
           addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code, 1);
+          console.log("8");
         }
       }
       CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.product_id, video === null || video === void 0 ? void 0 : video.video_id, "2");
@@ -2089,11 +2287,15 @@ var ProductDescComp = function ProductDescComp(_ref5) {
         var _checkInWishListOrNo$3;
         removeFromWatchList(checkInWishListOrNo === null || checkInWishListOrNo === void 0 ? void 0 : (_checkInWishListOrNo$3 = checkInWishListOrNo.obj) === null || _checkInWishListOrNo$3 === void 0 ? void 0 : _checkInWishListOrNo$3.id);
       } else {
-        if (cart !== null && cart !== void 0 && cart.token) {
+        if (swProps !== null && swProps !== void 0 && swProps.token) {
+          removePointerEventsFromHeart();
           addToWatchListClicked(el === null || el === void 0 ? void 0 : el.sku_code, 1);
+          console.log("9");
         } else {
+          removePointerEventsFromHeart();
           onClose();
           addToWatchListClicked(el === null || el === void 0 ? void 0 : el.sku_code, 1);
+          console.log("10");
         }
       }
       CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, el === null || el === void 0 ? void 0 : el.product[0].product_id, video === null || video === void 0 ? void 0 : video.video_id, "2");
@@ -2106,7 +2308,8 @@ var ProductDescComp = function ProductDescComp(_ref5) {
       cursor: "pointer",
       backgroundColor: "#fff",
       display: "none"
-    }
+    },
+    className: "swirl_ssv_wishlist_heart"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("img", {
     alt: "Playlist",
     width: "32",
@@ -2274,14 +2477,13 @@ var PipComp = function PipComp(_ref6) {
   })));
 };
 var SwirlShortVideos = function SwirlShortVideos(_ref7) {
-  var _swirlData$video, _swirlData$video4;
+  var _swirlData$video, _swirlData$video10;
   var _ref7$dataCode = _ref7.dataCode,
     dataCode = _ref7$dataCode === void 0 ? "y04uwn5r" : _ref7$dataCode,
     _ref7$dataPlalistCode = _ref7.dataPlalistCode,
-    dataPlalistCode = _ref7$dataPlalistCode === void 0 ? "Q9cZrn" : _ref7$dataPlalistCode,
-    url = _ref7.url,
+    dataPlalistCode = _ref7$dataPlalistCode === void 0 ? "zpDHb9" : _ref7$dataPlalistCode,
     dataWs = _ref7.dataWs,
-    cart = _ref7.cart,
+    swProps = _ref7.swProps,
     _ref7$serverType = _ref7.serverType,
     serverType = _ref7$serverType === void 0 ? "development" : _ref7$serverType;
   var _useState17 = useState(false),
@@ -2352,57 +2554,74 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
   };
   var handleClick = useCallback(function (index) {
     setActive(index);
-    setShow(true);
+    setTimeout(function () {
+      setShow(true);
+    }, 100);
     setPipDisplay(false);
     localStorage.removeItem("_pip_video_data");
     disableScrollssv();
   }, [setActive, setShow, setPipDisplay]);
+  useEffect(function () {
+    if (sliderRef.current) {
+      sliderRef.current.slickGoTo(active);
+    }
+  }, [active]);
   var getDataFunc = useCallback(function () {
     try {
-      var _temp10 = _catch(function () {
-        return Promise.resolve(axios.get("https://api.goswirl.live/index.php/ShortVideo/videolistingV5?user=" + dataCode + "&playlist=" + dataPlalistCode + "&url=" + url).then(function (res) {
-          var _res$data;
-          var data = res === null || res === void 0 ? void 0 : (_res$data = res.data) === null || _res$data === void 0 ? void 0 : _res$data.swilrs;
-          if (data) {
-            setSwirlData(data);
-            setTimeout(function () {
-              var queryString = window.location.search;
-              var queryParams = new URLSearchParams(queryString);
-              var swirlVideoParam = queryParams.get("swirl_video");
-              var findIndexByVideoId = function findIndexByVideoId(videoId) {
-                var _data$video;
-                return data === null || data === void 0 ? void 0 : (_data$video = data.video) === null || _data$video === void 0 ? void 0 : _data$video.findIndex(function (obj) {
-                  return obj.video_id === videoId;
-                });
-              };
-              var decodedID = window.atob(swirlVideoParam);
-              var ind = findIndexByVideoId("" + decodedID);
-              if (swirlVideoParam) {
-                var scrollToElementById = function scrollToElementById(id) {
-                  var element = document.getElementById(id);
-                  if (element) {
-                    element.scrollIntoView({
-                      behavior: "smooth"
-                    });
-                  }
+      var _temp8 = _catch(function () {
+        return Promise.resolve(axios.get("https://api.goswirl.live/index.php/ShortVideo/videolistingV5?user=" + dataCode + "&playlist=" + dataPlalistCode + "&url=" + window.location.href).then(function (res) {
+          try {
+            var _res$data;
+            var data = res === null || res === void 0 ? void 0 : (_res$data = res.data) === null || _res$data === void 0 ? void 0 : _res$data.swilrs;
+            if (data) {
+              var _data$video;
+              var videoIds = data === null || data === void 0 ? void 0 : (_data$video = data.video) === null || _data$video === void 0 ? void 0 : _data$video.map(function (video) {
+                return video === null || video === void 0 ? void 0 : video.video_id;
+              });
+              setSwirlData(data);
+              setTimeout(function () {
+                var queryString = window.location.search;
+                var queryParams = new URLSearchParams(queryString);
+                var swirlVideoParam = queryParams.get("swirl_video");
+                localStorage.setItem("_ssv_storeResponseData", JSON.stringify(res === null || res === void 0 ? void 0 : res.data));
+                var findIndexByVideoId = function findIndexByVideoId(videoId) {
+                  var _data$video2;
+                  return data === null || data === void 0 ? void 0 : (_data$video2 = data.video) === null || _data$video2 === void 0 ? void 0 : _data$video2.findIndex(function (obj) {
+                    return obj.video_id === videoId;
+                  });
                 };
-                scrollToElementById("swirl_section_main_div");
-                handleClick(ind);
-                var _url = new URL(window.location.href);
-                _url.searchParams["delete"]("swirl_video");
-                window.history.replaceState({}, document.title, _url.toString());
-              }
-            }, 500);
+                var decodedID = window.atob(swirlVideoParam);
+                var ind = findIndexByVideoId("" + decodedID);
+                if (swirlVideoParam) {
+                  var scrollToElementById = function scrollToElementById(id) {
+                    var element = document.getElementById(id);
+                    if (element) {
+                      element.scrollIntoView({
+                        behavior: "smooth"
+                      });
+                    }
+                  };
+                  scrollToElementById("swirl_section_main_div");
+                  handleClick(ind);
+                  var url = new URL(window.location.href);
+                  url.searchParams["delete"]("swirl_video");
+                  window.history.replaceState({}, document.title, url.toString());
+                }
+              }, 500);
+            }
+            return Promise.resolve();
+          } catch (e) {
+            return Promise.reject(e);
           }
         })).then(function () {});
       }, function (error) {
         console.log(error);
       });
-      return Promise.resolve(_temp10 && _temp10.then ? _temp10.then(function () {}) : void 0);
+      return Promise.resolve(_temp8 && _temp8.then ? _temp8.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [dataCode, dataPlalistCode, url, handleClick]);
+  }, [dataCode, dataPlalistCode, handleClick]);
   var settings = {
     dots: false,
     slidesToShow: windowWidth < 576 ? 2 : windowWidth < 800 ? 3 : windowWidth < 1300 ? 4 : 5,
@@ -2417,17 +2636,32 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     var videos = document.getElementsByClassName("swirl_ssv_video_div");
     var thisVideo = videos[next];
     var previosVideo = videos[current];
-    thisVideo === null || thisVideo === void 0 ? void 0 : thisVideo.play();
-    previosVideo === null || previosVideo === void 0 ? void 0 : previosVideo.pause();
+    if (thisVideo && !thisVideo.paused) {
+      thisVideo.pause();
+    } else {
+      if (thisVideo) {
+        thisVideo.play();
+      }
+    }
+    if (previosVideo && !previosVideo.paused) {
+      previosVideo.pause();
+    } else {
+      if (previosVideo) {
+        previosVideo.play();
+      }
+    }
   };
   var settings2 = {
     swipe: swipeStatus,
     dots: false,
     slidesToShow: 1,
-    speed: 900,
+    speed: !show ? 0 : 250,
     slidesToScroll: 1,
     infinite: false,
     initialSlide: active,
+    touchMove: true,
+    fade: !show ? true : false,
+    autoPlay: false,
     adaptiveHeight: true,
     prevArrow: /*#__PURE__*/React.createElement(SamplePrevArrowForModal, null),
     nextArrow: /*#__PURE__*/React.createElement(SampleNextArrowForModal, null),
@@ -2436,9 +2670,16 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     beforeChange: function beforeChange(current, next) {
       playNextSlideAndPausePrevious(current, next);
       setDescriptionOn(false);
+      if (sliderRef.current) {
+        sliderRef.current.slickPause();
+      }
     },
     afterChange: function afterChange(current) {
       setQantityForAddToCart(1);
+      if (sliderRef.current) {
+        sliderRef.current.slickPause();
+      }
+      setActive(current);
     }
   };
   var handleResize = function handleResize() {
@@ -2471,10 +2712,51 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     };
   }, []);
   var onClose = function onClose() {
-    setShow(false);
-    enableScrollssv();
-    setDescriptionOn(false);
-    setQantityForAddToCart(1);
+    try {
+      setShow(false);
+      enableScrollssv();
+      setDescriptionOn(false);
+      setQantityForAddToCart(1);
+      var analyticsData = JSON.parse(localStorage.getItem("_all_video_data"));
+      return Promise.resolve(analyticsData === null || analyticsData === void 0 ? void 0 : analyticsData.map(function (i) {
+        try {
+          i.video_id = i.id.replace(substring_to_remove, "");
+          return Promise.resolve(i);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+      })).then(function (updatedData) {
+        if ((updatedData === null || updatedData === void 0 ? void 0 : updatedData.length) > 0) {
+          Promise.all(updatedData).then(function (modifiedData) {
+            try {
+              return Promise.resolve(fetch("https://analytics-api.goswirl.live/engagement", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  payloads: modifiedData
+                })
+              }).then(function (response) {
+                videoDataArray = [];
+                if (!response.ok) {
+                  throw new Error("Network response was not ok");
+                }
+                localStorage.removeItem("_all_video_data");
+              })["catch"](function (error) {
+                console.error("Error sending data:", error);
+              })).then(function () {});
+            } catch (e) {
+              return Promise.reject(e);
+            }
+          })["catch"](function (err) {
+            return console.log(err);
+          });
+        }
+      });
+    } catch (e) {
+      return Promise.reject(e);
+    }
   };
   useEffect(function () {
     getDataFunc();
@@ -2486,7 +2768,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       return Promise.resolve(function () {
         if (dataWs === "0") {
           var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
-          var graphqlQuery = "\n            {\n              products(filter: { sku: { eq: \"" + skuCode + "\" } }) {\n                items {\n                  sku\n                  product_quatity\n                  stock_status\n                }\n              }\n            }\n          ";
+          var graphqlQuery = "\n                                {\n                                products(filter: { sku: { eq: \"" + skuCode + "\" } }) {\n                                    items {\n                                    sku\n                                    product_quatity\n                                    stock_status\n                                    selected_varient {\n                                            sku\n                                            product_quatity\n                                            stock_status\n                                            }\n                                        }\n                                    }\n                                }\n                                ";
           var fetchOptions = {
             method: "POST",
             headers: {
@@ -2499,6 +2781,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
           return _catch(function () {
             return Promise.resolve(fetch(graphqlEndpoint, fetchOptions)).then(function (response) {
               return Promise.resolve(response.json()).then(function (data) {
+                console.log(data);
                 var items = data.data.products.items;
                 if (items.length > 0) {
                   var status = items[0].stock_status;
@@ -2525,136 +2808,63 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       return Promise.reject(e);
     }
   }, [dataWs, serverType]);
-  var getWishlistDetails = useCallback(function () {
+  var getAvailabiityCheckAndVarientInfo = useCallback(function (skuCode) {
     try {
       return Promise.resolve(function () {
         if (dataWs === "0") {
+          var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
+          var graphqlQuery = "\n                                {\n                                products(filter: { sku: { eq: \"" + skuCode + "\" } }) {\n                                    items {\n                                    sku\n                                    product_quatity\n                                    stock_status\n                                    selected_varient {\n                                            sku\n                                            product_quatity\n                                            stock_status\n                                            }\n                                        }\n                                    }\n                                }\n                                ";
+          var fetchOptions = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              query: graphqlQuery
+            })
+          };
           return _catch(function () {
-            var _temp11 = function () {
-              if (cart !== null && cart !== void 0 && cart.token) {
-                var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
-                var graphqlQuery = "\n                    query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {\n                        customer {\n                          wishlists {\n                            id\n                            __typename\n                            items_count\n                            items_v2(currentPage: $currentPage, pageSize: $pageSize) {\n                              items {\n                                id\n                                product {\n                                  uid\n                                  sku\n                                }\n                              }\n                            }\n                          }\n                        }\n                      }       \n                  ";
-                var requestOptions = {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    authorization: cart !== null && cart !== void 0 && cart.token ? "Bearer " + (cart === null || cart === void 0 ? void 0 : cart.token) : " "
-                  },
-                  body: JSON.stringify({
-                    query: graphqlQuery,
-                    variables: {
-                      currentPage: 1,
-                      pageSize: 50
-                    }
-                  })
-                };
-                return Promise.resolve(fetch(graphqlEndpoint, requestOptions)).then(function (wishlistResults) {
-                  return Promise.resolve(wishlistResults.json()).then(function (data) {
-                    if (data) {
-                      var _data$data, _data$data$customer;
-                      if (data !== null && data !== void 0 && (_data$data = data.data) !== null && _data$data !== void 0 && (_data$data$customer = _data$data.customer) !== null && _data$data$customer !== void 0 && _data$data$customer.wishlists) {
-                        var _data$data2, _data$data2$customer;
-                        setWiishlistData(data === null || data === void 0 ? void 0 : (_data$data2 = data.data) === null || _data$data2 === void 0 ? void 0 : (_data$data2$customer = _data$data2.customer) === null || _data$data2$customer === void 0 ? void 0 : _data$data2$customer.wishlists[0].items_v2.items);
-                      }
-                    }
-                  });
-                });
-              }
-            }();
-            if (_temp11 && _temp11.then) return _temp11.then(function () {});
+            return Promise.resolve(fetch(graphqlEndpoint, fetchOptions)).then(function (response) {
+              return Promise.resolve(response.json()).then(function (data) {
+                console.log(data);
+                var items = data.data.products.items;
+                if (items.length > 0) {
+                  var _data$data$products, _data$data$products$i, _data$data$products2, _data$data$products2$;
+                  var status = items[0].stock_status;
+                  var availabilityQuant = items[0].product_quatity;
+                  return status === "OUT_OF_STOCK" ? {
+                    status: "outofstock",
+                    availableQuantity: availabilityQuant
+                  } : {
+                    status: "instock",
+                    availableQuantity: availabilityQuant,
+                    varient: (_data$data$products = data.data.products) !== null && _data$data$products !== void 0 && (_data$data$products$i = _data$data$products.items[0]) !== null && _data$data$products$i !== void 0 && _data$data$products$i.selected_varient ? (_data$data$products2 = data.data.products) === null || _data$data$products2 === void 0 ? void 0 : (_data$data$products2$ = _data$data$products2.items[0]) === null || _data$data$products2$ === void 0 ? void 0 : _data$data$products2$.selected_varient : null
+                  };
+                } else {
+                  return "outofstock";
+                }
+              });
+            });
           }, function (error) {
             console.error(error);
+            return "wrong";
           });
-        } else return function () {
-          if (dataWs === "1") {
-            return _catch(function () {
-              var _temp12 = function () {
-                if (cart !== null && cart !== void 0 && cart.token) {
-                  var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
-                  var graphqlQuery = "\n                    query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {\n                        customer {\n                          wishlists {\n                            id\n                            __typename\n                            items_count\n                            items_v2(currentPage: $currentPage, pageSize: $pageSize) {\n                              items {\n                                id\n                                product {\n                                  uid\n                                  sku\n                                }\n                              }\n                            }\n                          }\n                        }\n                      }       \n                  ";
-                  var requestOptions = {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      authorization: cart !== null && cart !== void 0 && cart.token ? "Bearer " + (cart === null || cart === void 0 ? void 0 : cart.token) : " "
-                    },
-                    body: JSON.stringify({
-                      query: graphqlQuery,
-                      variables: {
-                        currentPage: 1,
-                        pageSize: 50
-                      }
-                    })
-                  };
-                  return Promise.resolve(fetch(graphqlEndpoint, requestOptions)).then(function (wishlistResults) {
-                    return Promise.resolve(wishlistResults.json()).then(function (data) {
-                      if (data) {
-                        var _data$data3, _data$data3$customer;
-                        if (data !== null && data !== void 0 && (_data$data3 = data.data) !== null && _data$data3 !== void 0 && (_data$data3$customer = _data$data3.customer) !== null && _data$data3$customer !== void 0 && _data$data3$customer.wishlists) {
-                          var _data$data4, _data$data4$customer;
-                          setWiishlistData(data === null || data === void 0 ? void 0 : (_data$data4 = data.data) === null || _data$data4 === void 0 ? void 0 : (_data$data4$customer = _data$data4.customer) === null || _data$data4$customer === void 0 ? void 0 : _data$data4$customer.wishlists[0].items_v2.items);
-                        }
-                      }
-                    });
-                  });
-                }
-              }();
-              if (_temp12 && _temp12.then) return _temp12.then(function () {});
-            }, function (error) {
-              console.error(error);
-            });
-          } else {
-            return _catch(function () {
-              var _temp13 = function () {
-                if (cart !== null && cart !== void 0 && cart.token) {
-                  var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
-                  var graphqlQuery = "\n                        query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {\n                            customer {\n                              wishlists {\n                                id\n                                __typename\n                                items_count\n                                items_v2(currentPage: $currentPage, pageSize: $pageSize) {\n                                  items {\n                                    id\n                                    product {\n                                      uid\n                                      sku\n                                    }\n                                  }\n                                }\n                              }\n                            }\n                          }       \n                      ";
-                  var requestOptions = {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      authorization: cart !== null && cart !== void 0 && cart.token ? "Bearer " + (cart === null || cart === void 0 ? void 0 : cart.token) : " "
-                    },
-                    body: JSON.stringify({
-                      query: graphqlQuery,
-                      variables: {
-                        currentPage: 1,
-                        pageSize: 50
-                      }
-                    })
-                  };
-                  return Promise.resolve(fetch(graphqlEndpoint, requestOptions)).then(function (wishlistResults) {
-                    return Promise.resolve(wishlistResults.json()).then(function (data) {
-                      if (data) {
-                        var _data$data5, _data$data5$customer;
-                        if (data !== null && data !== void 0 && (_data$data5 = data.data) !== null && _data$data5 !== void 0 && (_data$data5$customer = _data$data5.customer) !== null && _data$data5$customer !== void 0 && _data$data5$customer.wishlists) {
-                          var _data$data6, _data$data6$customer;
-                          setWiishlistData(data === null || data === void 0 ? void 0 : (_data$data6 = data.data) === null || _data$data6 === void 0 ? void 0 : (_data$data6$customer = _data$data6.customer) === null || _data$data6$customer === void 0 ? void 0 : _data$data6$customer.wishlists[0].items_v2.items);
-                        }
-                      }
-                    });
-                  });
-                }
-              }();
-              if (_temp13 && _temp13.then) return _temp13.then(function () {});
-            }, function (error) {
-              console.error(error);
-            });
-          }
-        }();
+        }
       }());
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [cart === null || cart === void 0 ? void 0 : cart.token, dataWs, serverType]);
+  }, [dataWs, serverType]);
+  useEffect(function () {
+    setWiishlistData(swProps === null || swProps === void 0 ? void 0 : swProps.wishlistItems);
+  }, [swProps === null || swProps === void 0 ? void 0 : swProps.wishlistItems]);
   var addTocartClicked = useCallback(function (skuCode, quantity) {
     try {
-      console.log(skuCode);
-      var _temp18 = function () {
+      var _temp10 = function () {
         if (dataWs === "0") {
           console.log("running for 0");
-          var _temp14 = _catch(function () {
-            return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
+          var _temp9 = _catch(function () {
+            return Promise.resolve(getAvailabiityCheckAndVarientInfo(skuCode)).then(function (isAvailable) {
               var shouldAdd = CHeckShouldAddOrNotToCart(skuCode);
               if (shouldAdd) {
                 if (isAvailable.status === "instock") {
@@ -2662,12 +2872,15 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
                     detail: JSON.stringify({
                       type: "SimpleProduct",
                       sku: skuCode,
-                      qty: quantityForAddToCart
+                      qty: quantityForAddToCart,
+                      varient: isAvailable.varient ? isAvailable.varient : null
                     })
                   });
+                  console.log(event);
                   window.dispatchEvent(event);
                   setErrorMessage("Item added to Cart");
                   setIsVisibleMsg(true);
+                  setQantityForAddToCart(1);
                 } else if (isAvailable.status === "outofstock") {
                   setErrorMessage("This item is out of stock");
                   setIsVisibleMsg(true);
@@ -2685,87 +2898,36 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
             setErrorMessage("Something went wrong, Please try again!");
             setIsVisibleMsg(true);
           });
-          if (_temp14 && _temp14.then) return _temp14.then(function () {});
+          if (_temp9 && _temp9.then) return _temp9.then(function () {});
         } else {
-          var _temp19 = function () {
-            if (dataWs === "1") {
-              console.log("Logic running of add to cart for dataws1");
-              var _temp15 = _catch(function () {
-                return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
-                  if (isAvailable.status === "instock") {
-                    var event = new CustomEvent("ADDED_TO_CART", {
-                      detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        qty: quantityForAddToCart
-                      })
-                    });
-                    window.dispatchEvent(event);
-                    setErrorMessage("Item added to Cart");
-                    setIsVisibleMsg(true);
-                  } else if (isAvailable.status === "outofstock") {
-                    setErrorMessage("This item is out of stock");
-                    setIsVisibleMsg(true);
-                  } else {
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                  }
-                });
-              }, function (error) {
-                console.error("error", error);
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-              });
-              if (_temp15 && _temp15.then) return _temp15.then(function () {});
-            } else {
-              console.log("Logic running of add to cart for no dataws");
-              var _temp16 = _catch(function () {
-                return Promise.resolve(getAvailabiityCheck(skuCode)).then(function (isAvailable) {
-                  if (isAvailable.status === "instock") {
-                    var event = new CustomEvent("ADDED_TO_CART", {
-                      detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        qty: quantityForAddToCart
-                      })
-                    });
-                    window.dispatchEvent(event);
-                    setErrorMessage("Item added to Cart");
-                    setIsVisibleMsg(true);
-                  } else if (isAvailable.status === "outofstock") {
-                    setErrorMessage("This item is out of stock");
-                    setIsVisibleMsg(true);
-                  } else {
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                  }
-                });
-              }, function (error) {
-                console.error("error", error);
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-              });
-              if (_temp16 && _temp16.then) return _temp16.then(function () {});
-            }
-          }();
-          if (_temp19 && _temp19.then) return _temp19.then(function () {});
+          console.log("Logic running of add to cart for no dataws");
         }
       }();
-      return Promise.resolve(_temp18 && _temp18.then ? _temp18.then(function () {}) : void 0);
+      return Promise.resolve(_temp10 && _temp10.then ? _temp10.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
-  }, [quantityForAddToCart, dataWs, getAvailabiityCheck, CHeckShouldAddOrNotToCart]);
-  useEffect(function () {
-    var firstLoadFunc = function firstLoadFunc() {
+  }, [quantityForAddToCart, dataWs, getAvailabiityCheckAndVarientInfo, CHeckShouldAddOrNotToCart]);
+  var buyNowClick = useCallback(function (skuCode) {
+    try {
       try {
-        return Promise.resolve(getWishlistDetails()).then(function () {});
-      } catch (e) {
-        return Promise.reject(e);
+        var event = new CustomEvent("QUICK_BUY_WITH_SKU", {
+          detail: JSON.stringify({
+            type: "SimpleProduct",
+            sku: skuCode
+          })
+        });
+        console.log("BUY_NOW_EVENT", event);
+        window.dispatchEvent(event);
+      } catch (error) {
+        setErrorMessage("Something went wrong, Please try again!");
+        setIsVisibleMsg(true);
       }
-    };
-    firstLoadFunc();
-  }, [addTocartClicked, getWishlistDetails]);
+      return Promise.resolve();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }, []);
   var removeFromWatchList = function removeFromWatchList(itemId) {
     if (dataWs === "0") {
       console.log("Logic running of remove wishlist for dataws 0");
@@ -2773,17 +2935,9 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         var event = new CustomEvent("REMOVED_FROM_WISHLIST", {
           detail: itemId
         });
-        console.log(event);
         window.dispatchEvent(event);
         setErrorMessage("Item removed from wishlist");
         setIsVisibleMsg(true);
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        }, 500);
       } catch (error) {
         console.error("error", error);
         setErrorMessage("Something went wrong, Please try again!");
@@ -2798,13 +2952,6 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         window.dispatchEvent(_event3);
         setErrorMessage("Item removed from wishlist");
         setIsVisibleMsg(true);
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        }, 500);
       } catch (error) {
         console.error("error", error);
         setErrorMessage("Something went wrong, Please try again!");
@@ -2819,13 +2966,6 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         window.dispatchEvent(_event4);
         setErrorMessage("Item removed from wishlist");
         setIsVisibleMsg(true);
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        }, 500);
       } catch (error) {
         console.error("error", error);
         setErrorMessage("Something went wrong, Please try again!");
@@ -2834,87 +2974,68 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     }
   };
   var addToWatchListClicked = function addToWatchListClicked(skuCode) {
-    if (dataWs === "0") {
-      console.log("Logic running of wishlist for dataws 0");
-      try {
-        var event = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        console.log(event);
-        window.dispatchEvent(event);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+    var check = checkInWishListOrNot(wishlistData, skuCode);
+    if (!(check !== null && check !== void 0 && check.status)) {
+      if (dataWs === "0") {
+        console.log("Logic running of wishlist for dataws 0");
+        try {
+          var event = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(event);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
+          }
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
+      } else if (dataWs === "1") {
+        console.log("Logic running of wishlist for dataws1");
+        try {
+          var _event5 = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(_event5);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
           }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
-      }
-    } else if (dataWs === "1") {
-      console.log("Logic running of wishlist for dataws1");
-      try {
-        var _event5 = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        window.dispatchEvent(_event5);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
+      } else {
+        console.log("Logic running of wishlist for no dataws");
+        try {
+          var _event6 = new CustomEvent("ADDED_TO_WISHLIST", {
+            detail: JSON.stringify({
+              type: "SimpleProduct",
+              sku: skuCode,
+              selectedOptions: []
+            })
+          });
+          window.dispatchEvent(_event6);
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            setErrorMessage("Item added to wishlist");
+            setIsVisibleMsg(true);
           }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
-      }
-    } else {
-      console.log("Logic running of wishlist for no dataws");
-      try {
-        var _event6 = new CustomEvent("ADDED_TO_WISHLIST", {
-          detail: JSON.stringify({
-            type: "SimpleProduct",
-            sku: skuCode,
-            selectedOptions: []
-          })
-        });
-        window.dispatchEvent(_event6);
-        if (cart !== null && cart !== void 0 && cart.token) {
-          setErrorMessage("Item added to wishlist");
+        } catch (error) {
+          console.error("error", error);
+          setErrorMessage("Something went wrong, Please try again!");
           setIsVisibleMsg(true);
         }
-        setTimeout(function () {
-          try {
-            return Promise.resolve(getWishlistDetails()).then(function () {});
-          } catch (e) {
-            return Promise.reject(e);
-          }
-        }, 500);
-      } catch (error) {
-        console.error("error", error);
-        setErrorMessage("Something went wrong, Please try again!");
-        setIsVisibleMsg(true);
       }
     }
   };
@@ -2926,7 +3047,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       formData.append("user_id", "");
       formData.append("video_id", vId);
       formData.append("type", cType);
-      var _temp20 = _finallyRethrows(function () {
+      var _temp11 = _finallyRethrows(function () {
         return _catch(function () {
           return Promise.resolve(axios.post("https://api.goswirl.live/index.php/shopify/actionbuttons", formData, {
             headers: {
@@ -2936,11 +3057,11 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         }, function (error) {
           console.error("SWIRL CTA Track failed!", error);
         });
-      }, function (_wasThrown, _result2) {
-        if (_wasThrown) throw _result2;
-        return _result2;
+      }, function (_wasThrown, _result3) {
+        if (_wasThrown) throw _result3;
+        return _result3;
       });
-      return Promise.resolve(_temp20 && _temp20.then ? _temp20.then(function () {}) : void 0);
+      return Promise.resolve(_temp11 && _temp11.then ? _temp11.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -2956,8 +3077,8 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     };
   }, []);
   useEffect(function () {
-    setQueantity(cart === null || cart === void 0 ? void 0 : cart.cartCount);
-  }, [cart === null || cart === void 0 ? void 0 : cart.cartCount]);
+    setQueantity(swProps === null || swProps === void 0 ? void 0 : swProps.cartCount);
+  }, [swProps === null || swProps === void 0 ? void 0 : swProps.cartCount]);
   var countPercentage = function countPercentage(el) {
     var actualPrice = el.price;
     var discountedPrice = el.discount_price;
@@ -2985,14 +3106,14 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       };
       var allData = swirlData.video;
       var allSkucodes = collectUniqueSkuCodes(allData);
-      var _temp23 = function () {
+      var _temp14 = function () {
         if (allSkucodes.length > 0) {
-          var _temp22 = function () {
+          var _temp13 = function () {
             if (dataWs === "0") {
               var graphqlEndpoint = serverType === "production" ? "https://mcprod.glamourbook.com/graphql" : "https://mcstaging.glamourbook.com/graphql";
-              var graphqlQuery = "\n            {\n              products(filter: { sku: { in: [" + allSkucodes.map(function (code) {
+              var graphqlQuery = "\n                {\n                products(filter: { sku: { in: [" + allSkucodes.map(function (code) {
                 return "\"" + code + "\"";
-              }).join(", ") + "] } }) {\n                items {\n                  sku\n                  product_quatity\n                  stock_status\n                }\n              }\n            }\n          ";
+              }).join(", ") + "] } }) {\n                    items {\n                    sku\n                    product_quatity\n                    stock_status\n                    }\n                }\n                }\n            ";
               var fetchOptions = {
                 method: "POST",
                 headers: {
@@ -3002,7 +3123,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
                   query: graphqlQuery
                 })
               };
-              var _temp21 = _catch(function () {
+              var _temp12 = _catch(function () {
                 return Promise.resolve(fetch(graphqlEndpoint, fetchOptions)).then(function (response) {
                   return Promise.resolve(response.json()).then(function (data) {
                     var allStockData = data.data.products.items;
@@ -3012,13 +3133,13 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
               }, function (error) {
                 console.error(error);
               });
-              if (_temp21 && _temp21.then) return _temp21.then(function () {});
+              if (_temp12 && _temp12.then) return _temp12.then(function () {});
             }
           }();
-          if (_temp22 && _temp22.then) return _temp22.then(function () {});
+          if (_temp13 && _temp13.then) return _temp13.then(function () {});
         }
       }();
-      return Promise.resolve(_temp23 && _temp23.then ? _temp23.then(function () {}) : void 0);
+      return Promise.resolve(_temp14 && _temp14.then ? _temp14.then(function () {}) : void 0);
     } catch (e) {
       return Promise.reject(e);
     }
@@ -3032,7 +3153,6 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       var matchingObj = stockData.find(function (product) {
         return product.sku === skuCode;
       });
-      console.log(matchingObj);
       if ((matchingObj === null || matchingObj === void 0 ? void 0 : matchingObj.stock_status) === "IN_STOCK") {
         return {
           status: "instock",
@@ -3063,11 +3183,74 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     }
   };
   useEffect(function () {
-    setCartData(cart === null || cart === void 0 ? void 0 : cart.cartItems);
-  }, [cart]);
+    setCartData(swProps === null || swProps === void 0 ? void 0 : swProps.cartItems);
+  }, [swProps === null || swProps === void 0 ? void 0 : swProps.cartItems]);
+  useEffect(function () {
+    var handleEscKeyPress = function handleEscKeyPress(event) {
+      if (event.key === 'Escape') {
+        if (show) {
+          onClose();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleEscKeyPress);
+    return function () {
+      document.removeEventListener('keydown', handleEscKeyPress);
+    };
+  }, [show]);
+  useEffect(function () {
+    console.log('%cSSV v1.6.7', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
+    var handleKeyPress = function handleKeyPress(event) {
+      switch (event.key) {
+        case 'ArrowUp':
+          handlePreviousSlide();
+          break;
+        case 'ArrowDown':
+          handleNextSlide();
+          break;
+        case 'ArrowLeft':
+          handlePreviousSlide();
+          break;
+        case 'ArrowRight':
+          handleNextSlide();
+          break;
+      }
+    };
+    document.addEventListener('keydown', handleKeyPress);
+    return function () {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, []);
+  function setMaxHeightToVideosWithClass(className) {
+    var videos = document.querySelectorAll("." + className);
+    var maxHeight = 0;
+    videos.forEach(function (video) {
+      var height = video.clientHeight;
+      maxHeight = Math.max(maxHeight, height);
+    });
+    videos.forEach(function (video) {
+      video.style.height = maxHeight + "px";
+    });
+  }
+  useEffect(function () {
+    if (swirlData) {
+      setTimeout(function () {
+        setMaxHeightToVideosWithClass('video-card');
+      }, 300);
+    }
+  }, [swirlData]);
+  var removePointerEventsFromHeart = function removePointerEventsFromHeart() {
+    var heartElements = document.querySelectorAll('.swirl_ssv_wishlist_heart');
+    heartElements.forEach(function (heart) {
+      heart.style.pointerEvents = 'none';
+      setTimeout(function () {
+        heart.style.pointerEvents = 'auto';
+      }, 1100);
+    });
+  };
   return /*#__PURE__*/React.createElement(Fragment, null, /*#__PURE__*/React.createElement("div", {
     id: "swirl_section_main_div"
-  }, /*#__PURE__*/React.createElement("style", null, "\n          #swirl_ssv_video_progress::-webkit-progress-bar {\n            background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_buy_btn) + ";\n          }\n\n          #swirl_ssv_video_progress::-webkit-progress-value {\n            background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n          }\n\n          #swirl_ssv_video_progress::-moz-progress-bar {\n            background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n          }\n        "), /*#__PURE__*/React.createElement(Modal, {
+  }, /*#__PURE__*/React.createElement("style", null, "\n            #swirl_ssv_video_progress::-webkit-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_buy_btn) + ";\n            }\n\n            #swirl_ssv_video_progress::-webkit-progress-value {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n\n            #swirl_ssv_video_progress::-moz-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n            "), /*#__PURE__*/React.createElement(Modal, {
     show: show,
     title: "Lightbox",
     onClose: onClose,
@@ -3075,29 +3258,35 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
   }, /*#__PURE__*/React.createElement(Slider, _extends({}, settings2, {
     ref: sliderRef
   }), swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video = swirlData.video) === null || _swirlData$video === void 0 ? void 0 : _swirlData$video.map(function (el, index) {
-    var _swirlData$video2, _el$product, _swirlData$video3;
+    var _swirlData$video2, _swirlData$video3, _swirlData$video4, _swirlData$video5, _el$product, _swirlData$video6, _swirlData$video7, _swirlData$video8, _swirlData$video9;
     var video = el;
     return /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_ssv_modal_row",
       key: index
     }, /*#__PURE__*/React.createElement("div", {
-      className: "swirl_ssv_pre_next_elems",
+      className: "swirl_ssv_pre_next_elems swirl_ssv_pre_next_elems_pre",
       onClick: handlePreviousSlide,
       style: {
-        cursor: "pointer",
-        backgroundImage: "url(" + (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video2 = swirlData.video[index - 1]) === null || _swirlData$video2 === void 0 ? void 0 : _swirlData$video2.cover_image) + ")"
+        backgroundImage: "url(" + (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video2 = swirlData.video[index - 1]) === null || _swirlData$video2 === void 0 ? void 0 : _swirlData$video2.cover_image) + ")",
+        width: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video3 = swirlData.video[index - 1]) === null || _swirlData$video3 === void 0 ? void 0 : _swirlData$video3.is_landscape) === "0" ? "350px" : "auto",
+        height: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video4 = swirlData.video[index - 1]) === null || _swirlData$video4 === void 0 ? void 0 : _swirlData$video4.is_landscape) === "0" ? "27vh" : "80%",
+        maxWidth: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video5 = swirlData.video[index - 1]) === null || _swirlData$video5 === void 0 ? void 0 : _swirlData$video5.is_landscape) === "0" ? "auto" : "240px",
+        cursor: index === (swirlData === null || swirlData === void 0 ? void 0 : swirlData.video.length) - 1 || windowWidth < 1200 ? "default" : "pointer"
       }
     }), /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_ssv_modal_square",
       style: {
+        borderRadius: el.product.length === 0 ? windowWidth >= 833 ? "5px" : "0px" : "0px",
+        overflow: "hidden",
         width: el.product.length > 0 ? windowWidth >= 1500 ? "50vw" : "70%" : windowWidth >= 1500 ? "50vw" : "70%",
         marginTop: windowWidth > 833 ? "30px" : "0px",
-        maxWidth: el.product.length === 0 ? windowWidth < 833 ? "100%" : "340px" : "auto",
+        maxWidth: el.product.length === 0 ? windowWidth < 833 ? "100%" : "400px" : "auto",
         margin: windowWidth < 833 ? el.product.length === 0 ? "0px auto" : "0px" : "32px auto"
       }
     }, /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_row"
     }, /*#__PURE__*/React.createElement(VideoComponent, {
+      removePointerEventsFromHeart: removePointerEventsFromHeart,
       thisVideo: el,
       onClose: onClose,
       videoLink: el.server_url,
@@ -3108,6 +3297,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       pipDisPlay: pipDisPlay,
       setPipDisplay: setPipDisplay,
       dataWs: dataWs,
+      setActive: setActive,
       isVisibleMsg: isVisibleMsg,
       setIsVisibleMsg: setIsVisibleMsg,
       errorMessage: errorMessage,
@@ -3118,15 +3308,16 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       setLoadingbtnId: setLoadingbtnId,
       loadingbtnId: loadingbtnId,
       wishlistData: wishlistData,
-      getWishlistDetails: getWishlistDetails,
       removeFromWatchList: removeFromWatchList,
       sliderRef: sliderRef,
       swipeStatus: swipeStatus,
       setSwipeStatus: setSwipeStatus,
-      getAvailabiityCheck: getAvailabiityCheck,
-      cart: cart,
+      getAvailabiityCheckAndVarientInfo: getAvailabiityCheckAndVarientInfo,
+      swProps: swProps,
       checkProductStock: checkProductStock,
-      CHeckShouldAddOrNotToCart: CHeckShouldAddOrNotToCart
+      CHeckShouldAddOrNotToCart: CHeckShouldAddOrNotToCart,
+      show: show,
+      buyNowClick: buyNowClick
     }), video.product.length > 0 ? /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_column swirl_ssv_right_section_display_none"
     }, (el === null || el === void 0 ? void 0 : (_el$product = el.product) === null || _el$product === void 0 ? void 0 : _el$product.length) > 1 ? /*#__PURE__*/React.createElement(Fragment, null, descriptionOn ? /*#__PURE__*/React.createElement(Fragment, {
@@ -3171,16 +3362,21 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         width: "50px",
         cursor: "pointer"
       },
+      className: "swirl_ssv_wishlist_heart",
       onClick: function onClick() {
         if (checkInWishListOrNo.status) {
           var _checkInWishListOrNo$4;
           removeFromWatchList(checkInWishListOrNo === null || checkInWishListOrNo === void 0 ? void 0 : (_checkInWishListOrNo$4 = checkInWishListOrNo.obj) === null || _checkInWishListOrNo$4 === void 0 ? void 0 : _checkInWishListOrNo$4.id);
         } else {
-          if (cart !== null && cart !== void 0 && cart.token) {
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            removePointerEventsFromHeart();
             addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code);
+            console.log("1");
           } else {
+            removePointerEventsFromHeart();
             onClose();
             addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code);
+            console.log("2");
           }
         }
         CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, descriptionData.product_id, video === null || video === void 0 ? void 0 : video.video_id, "2");
@@ -3385,7 +3581,8 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         backgroundColor: "#fff",
         color: swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_add_to_cart_btn,
         border: "1px solid " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_add_to_cart_btn)
-      }
+      },
+      className: "swirl_ssv_cta_btn_add_buy"
     }, /*#__PURE__*/React.createElement(CartBtnLoadingComp, {
       preViousText: "Adding",
       btnId: "4",
@@ -3398,7 +3595,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       onClick: function onClick() {
         CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, descriptionData.product_id, video === null || video === void 0 ? void 0 : video.video_id, "1");
         onClose();
-        window.open(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.url);
+        buyNowClick(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code);
       },
       style: {
         width: "100%",
@@ -3409,19 +3606,25 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         border: "1px solid " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn),
         backgroundColor: swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn,
         padding: "10px"
-      }
+      },
+      className: "swirl_ssv_cta_btn_add_buy"
     }, swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.buy_btn) : "", /*#__PURE__*/React.createElement("div", {
       title: "Add to Watchlist",
+      className: "swirl_ssv_wishlist_heart",
       onClick: function onClick() {
         if (checkInWishListOrNo.status) {
           var _checkInWishListOrNo$5;
           removeFromWatchList(checkInWishListOrNo === null || checkInWishListOrNo === void 0 ? void 0 : (_checkInWishListOrNo$5 = checkInWishListOrNo.obj) === null || _checkInWishListOrNo$5 === void 0 ? void 0 : _checkInWishListOrNo$5.id);
         } else {
-          if (cart !== null && cart !== void 0 && cart.token) {
+          if (swProps !== null && swProps !== void 0 && swProps.token) {
+            removePointerEventsFromHeart();
             addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code);
+            console.log("3");
           } else {
+            removePointerEventsFromHeart();
             onClose();
             addToWatchListClicked(descriptionData === null || descriptionData === void 0 ? void 0 : descriptionData.sku_code);
+            console.log("4");
           }
         }
         CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, descriptionData.product_id, video === null || video === void 0 ? void 0 : video.video_id, "2");
@@ -3609,7 +3812,12 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         onClick: function onClick() {
           CTAClicksssv(swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.brand_id, el.product_id, video === null || video === void 0 ? void 0 : video.video_id, "1");
           onClose();
-          window.open(el === null || el === void 0 ? void 0 : el.url);
+          buyNowClick(el.sku_code);
+        },
+        style: {
+          color: swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_buy_btn,
+          border: "1px solid " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn),
+          backgroundColor: swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn
         }
       }, swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.buy_btn) : "")), /*#__PURE__*/React.createElement("div", {
         className: "swirl_col_3",
@@ -3644,6 +3852,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       key: index
     }, /*#__PURE__*/React.createElement(ProductDescComp, {
       el: video,
+      removePointerEventsFromHeart: removePointerEventsFromHeart,
       swirlSettings: swirlSettings,
       quantityForAddToCart: quantityForAddToCart,
       handleQuantity: handleQuantity,
@@ -3661,18 +3870,22 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       loadingbtnId: loadingbtnId,
       setLoadingbtnId: setLoadingbtnId,
       wishlistData: wishlistData,
-      getAvailabiityCheck: getAvailabiityCheck,
-      cart: cart,
-      CHeckShouldAddOrNotToCart: CHeckShouldAddOrNotToCart
+      getAvailabiityCheckAndVarientInfo: getAvailabiityCheckAndVarientInfo,
+      swProps: swProps,
+      CHeckShouldAddOrNotToCart: CHeckShouldAddOrNotToCart,
+      buyNowClick: buyNowClick
     }))) : "")), /*#__PURE__*/React.createElement("div", {
-      className: "swirl_ssv_pre_next_elems",
+      className: "swirl_ssv_pre_next_elems swirl_ssv_pre_next_elems_next",
       onClick: handleNextSlide,
       style: {
-        backgroundImage: "url(" + (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video3 = swirlData.video[index + 1]) === null || _swirlData$video3 === void 0 ? void 0 : _swirlData$video3.cover_image) + ")",
-        cursor: "pointer"
+        backgroundImage: "url(" + (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video6 = swirlData.video[index + 1]) === null || _swirlData$video6 === void 0 ? void 0 : _swirlData$video6.cover_image) + ")",
+        width: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video7 = swirlData.video[index + 1]) === null || _swirlData$video7 === void 0 ? void 0 : _swirlData$video7.is_landscape) === "0" ? "350px" : "auto",
+        height: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video8 = swirlData.video[index + 1]) === null || _swirlData$video8 === void 0 ? void 0 : _swirlData$video8.is_landscape) === "0" ? "27vh" : "80%",
+        maxWidth: (swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video9 = swirlData.video[index + 1]) === null || _swirlData$video9 === void 0 ? void 0 : _swirlData$video9.is_landscape) === "0" ? "auto" : "240px",
+        cursor: index === (swirlData === null || swirlData === void 0 ? void 0 : swirlData.video.length) - 1 || windowWidth < 1200 ? "default" : "pointer"
       }
     }));
-  }))), /*#__PURE__*/React.createElement(Slider, settings, swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video4 = swirlData.video) === null || _swirlData$video4 === void 0 ? void 0 : _swirlData$video4.map(function (el, index) {
+  }))), /*#__PURE__*/React.createElement(Slider, settings, swirlData === null || swirlData === void 0 ? void 0 : (_swirlData$video10 = swirlData.video) === null || _swirlData$video10 === void 0 ? void 0 : _swirlData$video10.map(function (el, index) {
     var _el$product2;
     var countPercentage = function countPercentage() {
       var actualPrice = el.product[0].price;
@@ -3713,7 +3926,9 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       style: {
         width: "100%",
         height: "auto",
-        display: "block"
+        display: "block",
+        backgroundColor: "#000",
+        minHeight: el.is_landscape === "0" ? windowWidth > 833 ? "450px" : "300px" : "auto"
       },
       autoPlay: index < 5 && !show ? true : false,
       preload: "metadata",
@@ -3721,7 +3936,8 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       playsInline: true,
       poster: el.cover_image,
       muted: true,
-      loop: true
+      loop: true,
+      className: "video-card"
     }, /*#__PURE__*/React.createElement("source", {
       src: el.cover_video,
       type: "video/mp4"
@@ -3758,11 +3974,11 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       className: "swirl_ssv_overlay-center"
     }, /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_elements_over_short_play_btn"
-    }, /*#__PURE__*/React.createElement("img", {
+    }, (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.auto_play) === "0" ? /*#__PURE__*/React.createElement("img", {
       className: "swirl_ssv_playpausse_btn_carousel_outer",
       src: "https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/play.webp",
       alt: "play pause btn"
-    })))), swirlSettings.product_blog_img === 1 && el.product.length > 0 ? /*#__PURE__*/React.createElement("div", {
+    }) : ""))), swirlSettings.product_blog_img === 1 && el.product.length > 0 ? /*#__PURE__*/React.createElement("div", {
       className: "swirl_ssv_produt_section_ssv",
       onClick: function onClick() {
         return handleClick(index);
@@ -3821,7 +4037,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
         fontSize: "13px"
       }
     }, countPercentage(), " OFF")))))) : ""));
-  })), pipDisPlay ? /*#__PURE__*/React.createElement(PipComp, {
+  })), pipDisPlay && !show ? /*#__PURE__*/React.createElement(PipComp, {
     videoData: JSON.parse(localStorage.getItem("_pip_video_data")),
     pipDisPlay: pipDisPlay,
     setPipDisplay: setPipDisplay,

@@ -59,14 +59,30 @@
 }
 
 .swirl_ssv_product_info p {
-    font-size: 15px;
+    /* font-size: 15px;
     margin-top: 10px !important;
     text-align: center;
     padding: 0px 12px;
     height: 45px;
     font-weight: 400 !important;
+    overflow: hidden; */
+    height: 44px;
+    display: -webkit-box;
+    font-size: 16px;
+    text-align: center;
     overflow: hidden;
-
+    width: 100%;
+    font-weight: 600;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin: 0 !important;
+    margin-top: 12px !important;
+    margin-bottom: 8px !important;
+    line-height: 22px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    color: #323232 !important;
+    padding: 0px 12px;
 }
 
 .swirl_ssv_product_info h3 {
@@ -320,16 +336,34 @@ img {
 
 .swirl_ssv_pre_next_elems {
 
-    height: 75%;
-    width: 400px;
+    height: 65%;
+    width: 300px;
     /* transform: scale(.6); */
     /* background-color: red; */
     margin: auto;
-    scale: .7;
+    scale: .8;
     /* background: url(https://ik.imagekit.io/coverimages/tr:w-540/5624.webp); */
     /* background-size: 100% 100%; */
     background-repeat: no-repeat;
-    background-size: cover;
+    background-size: 100% 100%;
+    opacity: 0.8;
+    max-height: 420px;
+    min-width: 200px;
+    max-width: 240px;
+
+}
+
+/* .swirl_ssv_pre_next_elems:nth-child(2) {
+    margin-right: -69px;
+    display: n;
+} */
+
+#swil_ssv_modal_div>div.swirl_ssv_modal-wrapper>div>div.slick-list>div>div.slick-slide.slick-active.slick-current>div>div>div:nth-child(1) {
+    margin-left: -60px;
+}
+
+#swil_ssv_modal_div>div.swirl_ssv_modal-wrapper>div>div.slick-list>div>div.slick-slide.slick-active.slick-current>div>div>div:nth-child(3) {
+    margin-right: -60px;
 }
 
 #swirl_section_main_div .swirl_ssv_ssv_modal_row {
@@ -374,7 +408,6 @@ img {
     width: 100%;
     margin: 0;
     padding: 0;
-    object-fit: cover;
     position: relative;
 }
 
@@ -1112,7 +1145,7 @@ img {
     }
 }
 
-@media screen and (min-width: 833px) and (max-width: 1500px) {
+@media screen and (min-width: 1200px) and (max-width: 1500px) {
     #swirl_section_main_div .swirl_ssv_ssv_modal_square {
         width: 80vw !important;
     }
@@ -1121,6 +1154,10 @@ img {
 @media only screen and (max-width: 1200px) {
     .swirl_ssv_pre_next_elems {
         display: none;
+    }
+
+    .swirl_ssv_ssv_modal_square {
+        width: 70vw !important;
     }
 
     #swirl_section_main_div .swirl_ssv_ssv_modal_row {

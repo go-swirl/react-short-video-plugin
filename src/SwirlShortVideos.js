@@ -8,6 +8,227 @@ import Slider from "react-slick";
 import axios from "axios";
 import { useEffect } from "react";
 import { useCallback } from "react";
+let videoDataArray = [];
+let currentVideoTimer = null;
+
+const substring_to_remove = "modalVideossv-";
+window.addEventListener("unload", () => {
+    const analyticsDataString = localStorage.getItem("_all_video_data");
+
+
+    if (analyticsDataString) {
+        try {
+            const analyticsData = JSON.parse(analyticsDataString);
+            localStorage.removeItem("_all_video_data");
+            const updatedData = analyticsData?.map(async (i) => {
+                i.video_id = i.id.replace(substring_to_remove, "");
+                return i;
+            });
+            if (updatedData) {
+                try {
+                    const success = navigator.sendBeacon(
+                        "https://analytics-api.goswirl.live/engagement/onclose",
+                        JSON.stringify(analyticsData) // Sending individual object instead of wrapping it in an array
+                    );
+
+                    if (!success) {
+                        throw new Error("Beacon transmission failed");
+                    }
+
+                    // Clear the data from local storage if successfully sent
+                    localStorage.removeItem("_all_video_data");
+                } catch (error) {
+                    console.error("Error sending data:", error);
+                }
+            }
+        } catch (error) {
+            // Clear the data from local storage if successfully sent
+            localStorage.removeItem("_all_video_data");
+            console.error("Error parsing analytics data:", error);
+        }
+    }
+});
+
+let ssv_responseData = JSON.parse(localStorage.getItem("_ssv_storeResponseData")) || {}
+function initializeSegments(videoData) {
+    const segmentDuration = 3; // Duration in seconds
+
+    for (let i = 0; i < Math.ceil(videoData.duration / segmentDuration); i++) {
+        videoData.segments.push({
+            segment_id: i + 1,
+            start: i * segmentDuration,
+            end: Math.min((i + 1) * segmentDuration, videoData.duration),
+        });
+    }
+}
+
+function generateUUID() {
+    // Public Domain/MIT
+    var d = new Date().getTime(); //Timestamp
+    var d2 =
+        (typeof performance !== "undefined" &&
+            performance.now &&
+            performance.now() * 1000) ||
+        0; //Time in microseconds since page-load or 0 if unsupported
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16; //random number between 0 and 16
+        if (d > 0) {
+            //Use timestamp until depleted
+            r = (d + r) % 16 | 0;
+            d = Math.floor(d / 16);
+        } else {
+            //Use microseconds since page-load if supported
+            r = (d2 + r) % 16 | 0;
+            d2 = Math.floor(d2 / 16);
+        }
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+}
+
+function getDeviceType() {
+    const screenWidth = window.innerWidth;
+
+    if (screenWidth <= 767) {
+        return "Mobile";
+    } else if (screenWidth >= 768 && screenWidth <= 1024) {
+        return "Tablet";
+    } else {
+        return "Desktop";
+    }
+}
+
+async function initializeVideoData(videoId, videoUrl) {
+    let viewCounted = false;
+    // Check if data for the videoId already exists
+    const existingVideoData = videoDataArray?.find((data) => data?.id === videoId);
+
+
+    const swirlData = localStorage.getItem(
+        "_ssv_storeResponseData",
+        JSON.stringify(ssv_responseData)
+    );
+    const allDataofSwirls = JSON.parse(swirlData);
+    // Get the video element
+    const videoElement = document.getElementById(videoId);
+    // If data exists, update it; otherwise, initialize new data
+    const videoData = existingVideoData || {
+        id: videoId,
+        url: videoUrl,
+        unique_views: 0,
+        watch_time: 0,
+        brand_id: allDataofSwirls.swilrs?.data.brand_id,
+        total_views: 0,
+        duration: allDataofSwirls?.swilrs?.video?.find((el) => {
+            return el.server_url == videoUrl;
+        })?.video_len,
+        video_title: allDataofSwirls?.swilrs?.video?.find((el) => {
+            return el.server_url == videoUrl;
+        })?.video_title,
+        drop_of_point: [],
+        skip_points: [],
+        segments: [],
+        location_details: {},
+        system_detail: {
+            swirl_machine_id: generateUUID(),
+            device_type: getDeviceType(),
+        },
+    };
+    initializeSegments(videoData);
+    // Clear previous interval timer when a new video is initialized
+    if (currentVideoTimer) {
+        clearInterval(currentVideoTimer);
+    }
+    if (existingVideoData) {
+        // console.log("4152----", existingVideoData);
+        // Start the watch time from the existing value
+        videoData.watch_time = parseInt(existingVideoData.watch_time || 0, 10); // Use the existing value or default to 0
+    }
+    // Update data on time update
+    videoElement.addEventListener("timeupdate", () => {
+        const currentTime = Math.floor(videoElement.currentTime);
+        // Find the segment for the current time
+        const currentSegment = videoData.segments.find(
+            (segment) => currentTime >= segment.start && currentTime <= segment.end
+        );
+        // if (currentSegment) {
+        // Update the data
+        // videoData.watch_time = currentTime;
+        // }
+        if (currentTime != 0 && !viewCounted) {
+            videoData.unique_views = 1;
+            videoData.total_views += 1; // Increment totalViews
+            viewCounted = true; // Mark the view as counted
+            // Store updated data in local storage
+            localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+        }
+    });
+    // Update total playtime every second
+    currentVideoTimer = setInterval(() => {
+        if (!videoElement.paused) {
+            // tenPercent = Math.floor(videoData.duration * 0.1);
+            videoData.watch_time += 1;
+            // Store updated data in local storage
+            localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+        }
+    }, 1000);
+    // Create drop point when video is paused
+    videoElement.addEventListener("pause", () => {
+        const currentTime = Math.floor(videoElement.currentTime);
+        // Find the segment for the current time
+        const currentSegment = videoData.segments.find(
+            (segment) => currentTime >= segment.start && currentTime <= segment.end
+        );
+        if (currentSegment) {
+            // Create drop point
+            videoData.drop_of_point.push({
+                segment_id: currentSegment.segment_id,
+                timestamp: currentTime,
+            });
+            // Store updated data in local storage
+            localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+        }
+    });
+    // Track video skips
+    videoElement.addEventListener("seeked", () => {
+        const skipTime = Math.floor(videoElement.currentTime);
+        // Check if the skip time is within a segment
+        const currentSegment = videoData?.segments?.find(
+            (segment) => skipTime >= segment?.start && skipTime <= segment?.end
+        );
+        if (currentSegment) {
+
+            if (
+                videoData?.skip_points?.length === 0 ||
+                videoData?.skip_points[videoData?.skip_points?.length - 1].to
+            ) {
+                // Start a new skip point
+                videoData.skip_points.push({
+                    from: {
+                        segmentId: currentSegment?.segmentId,
+                        timeStamp: skipTime,
+                    },
+                    to: null,
+                });
+            } else {
+                // Complete the current skip point
+                videoData.skip_points[videoData.skip_points.length - 1].to = {
+                    segmentId: currentSegment.segmentId,
+                    timeStamp: skipTime,
+                };
+            }
+            // Store updated data in local storage
+            localStorage.setItem("_all_video_data", JSON.stringify(videoDataArray));
+        }
+    });
+    // Add or update videoData in the array
+    if (existingVideoData) {
+        // Update existing data
+        Object.assign(existingVideoData, videoData);
+    } else {
+        // Add new data
+        videoDataArray.push(videoData);
+    }
+}
 
 function disableScrollssv() {
     var scrollPosition = [
@@ -225,6 +446,7 @@ const copyToClipboard = (text) => {
 
 const VideoComponent = ({
     onClose,
+    setActive,
     thisVideo,
     videoLink,
     active,
@@ -232,29 +454,29 @@ const VideoComponent = ({
     windowWidth,
     swirlData,
     pipDisPlay,
+    removePointerEventsFromHeart,
     setPipDisplay,
     dataWs,
     isVisibleMsg,
     setIsVisibleMsg,
     errorMessage,
     setErrorMessage,
-    // getCartDetails,
     quantity,
     loadingCart,
     setLoadingCart,
     loadingbtnId,
     setLoadingbtnId,
     wishlistData,
-    getWishlistDetails,
     removeFromWatchList,
     sliderRef,
     swipeStatus,
     setSwipeStatus,
-    getAvailabiityCheck,
-    cart,
+    getAvailabiityCheckAndVarientInfo,
+    swProps,
     checkProductStock,
     CHeckShouldAddOrNotToCart,
-    show
+    show,
+    buyNowClick
 }) => {
     const swirlSettings = swirlData?.data;
     const videoRef = useRef(null);
@@ -287,7 +509,7 @@ const VideoComponent = ({
     const productRef = useRef()
     const productDrawerRef = useRef()
     const registerModalRef = useRef()
-
+    const productSectionRefForDrawer = useRef();
     useEffect(() => {
         if (show) {
             if (active === index) {
@@ -321,26 +543,53 @@ const VideoComponent = ({
     useEffect(() => {
         const handleClickOutside = (event) => {
             // Check if the click is outside the modal
-            if (modalRef.current && !modalRef.current.contains(event.target) && askbtnref.current && !askbtnref.current.contains(event.target) && registerModalRef.current && !registerModalRef.current.contains(event.target)) {
-                setIsDrawerOpen(false)
+            if (
+                modalRef.current &&
+                !modalRef.current.contains(event.target) &&
+                askbtnref.current &&
+                !askbtnref.current.contains(event.target) &&
+                registerModalRef.current &&
+                !registerModalRef.current.contains(event.target)
+            ) {
+                setIsDrawerOpen(false);
             }
 
-            if (shareModalRef.current && !shareModalRef.current.contains(event.target) && shareBtnRef.current && !shareBtnRef.current.contains(event.target)) {
-                setShareDrawerOnOrOff(false)
+            if (
+                shareModalRef.current &&
+                !shareModalRef.current.contains(event.target) &&
+                shareBtnRef.current &&
+                !shareBtnRef.current.contains(event.target)
+            ) {
+                setShareDrawerOnOrOff(false);
             }
 
+            if (
+                productDrawerRef.current &&
+                productDrawerRef.current.contains(event.target) &&
+                productSectionRefForDrawer.current &&
+                !productSectionRefForDrawer.current.contains(event.target)
+            ) {
+                setProductDetailDrawer(false);
+                onOffSLideMoves()
+            }
         };
 
         // Attach the event listener when the modal is open
-        if (isDrawerOpen || shareDrawerOnOrOff) {
-            document.addEventListener('click', handleClickOutside);
+        if (isDrawerOpen || shareDrawerOnOrOff || productDetalDrawer) {
+            document.addEventListener("click", handleClickOutside);
         }
 
         // Remove the event listener when the component is unmounted or modal is closed
         return () => {
-            document.removeEventListener('click', handleClickOutside);
+            document.removeEventListener("click", handleClickOutside);
         };
-    }, [isDrawerOpen, setIsDrawerOpen, shareDrawerOnOrOff, setShareDrawerOnOrOff, productDetalDrawer]);
+    }, [
+        isDrawerOpen,
+        setIsDrawerOpen,
+        shareDrawerOnOrOff,
+        setShareDrawerOnOrOff,
+        productDetalDrawer,
+    ]);
     const handleVideoEnd = () => {
         setIsPlaying(false);
     };
@@ -625,10 +874,13 @@ const VideoComponent = ({
 
     const addTocartClicked2 = useCallback(
         async (skuCode, quantity) => {
+
             if (dataWs === "0") {
-                console.log("Logic running of add to cart for dataws0");
+                console.log("running for 0");
                 try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
+                    // const isAvailable = await getAvailabiityCheck(skuCode);
+                    const isAvailable = await getAvailabiityCheckAndVarientInfo(skuCode)
+
                     const shouldAdd = CHeckShouldAddOrNotToCart(skuCode)
                     if (shouldAdd) {
                         if (isAvailable.status === "instock") {
@@ -637,12 +889,16 @@ const VideoComponent = ({
                                     type: "SimpleProduct",
                                     sku: skuCode,
                                     qty: quantityForAddToCart,
+                                    varient: isAvailable.varient ? isAvailable.varient : null
                                 }),
                             });
-
+                            console.log(event);
                             window.dispatchEvent(event);
+
                             setErrorMessage("Item added to Cart");
                             setIsVisibleMsg(true);
+                            setQantityForAddToCart(1)
+
                         } else if (isAvailable.status === "outofstock") {
                             setErrorMessage("This item is out of stock");
                             setIsVisibleMsg(true);
@@ -660,156 +916,93 @@ const VideoComponent = ({
                     setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
-            } else if (dataWs === "1") {
-                console.log("Logic running of add to cart for dataws1");
-                try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
-                    if (isAvailable.status === "instock") {
-                        const event = new CustomEvent("ADDED_TO_CART", {
-                            detail: JSON.stringify({
-                                type: "SimpleProduct",
-                                sku: skuCode,
-                                qty: quantityForAddToCart,
-                            }),
-                        });
+            } else {
+                console.log("Logic running of add to cart for no dataws");
 
-                        window.dispatchEvent(event);
-                        setErrorMessage("Item added to cart");
-                        setIsVisibleMsg(true);
-                    } else if (isAvailable.status === "outofstock") {
-                        setErrorMessage("This item is out of stock");
-                        setIsVisibleMsg(true);
-                    } else {
-                        setErrorMessage("Something went wrong, Please try again!");
+            }
+        },
+        [quantityForAddToCart, dataWs, getAvailabiityCheckAndVarientInfo, CHeckShouldAddOrNotToCart],
+    );
+
+    const addToWatchListClicked2 = (skuCode) => {
+        const check = checkInWishListOrNot(wishlistData, skuCode)
+        if (!check?.status) {
+            if (dataWs === "0") {
+                console.log("Logic running of wishlist for dataws0");
+                try {
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
+
+                    window.dispatchEvent(event);
+
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
                         setIsVisibleMsg(true);
                     }
+
+                    // toast.success("Successfully added to watchlist")
                 } catch (error) {
                     console.error("error", error);
+
+                    setErrorMessage("Something went wrong, Please try again!");
+                    setIsVisibleMsg(true);
+                }
+            } else if (dataWs === "1") {
+                console.log("Logic running of wishlist for dataws1");
+                try {
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
+
+                    window.dispatchEvent(event);
+
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
+                        setIsVisibleMsg(true);
+                    }
+
+                    // toast.success("Successfully added to watchlist")
+                } catch (error) {
+                    console.error("error", error);
+
                     setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
             } else {
-                console.log("Logic running of add to cart for no dataws");
-                try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
-                    if (isAvailable.status === "instock") {
-                        const event = new CustomEvent("ADDED_TO_CART", {
-                            detail: JSON.stringify({
-                                type: "SimpleProduct",
-                                sku: skuCode,
-                                qty: quantityForAddToCart,
-                            }),
-                        });
+                console.log("Logic running of wishlist for no dataws");
 
-                        window.dispatchEvent(event);
-                        setErrorMessage("Item added to cart");
-                        setIsVisibleMsg(true);
-                    } else if (isAvailable.status === "outofstock") {
-                        setErrorMessage("This item is out of stock");
-                        setIsVisibleMsg(true);
-                    } else {
-                        setErrorMessage("Something went wrong, Please try again!");
+                try {
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
+
+                    window.dispatchEvent(event);
+
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
                         setIsVisibleMsg(true);
                     }
+
+                    // toast.success("Successfully added to watchlist")
                 } catch (error) {
                     console.error("error", error);
+
                     setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
-            }
-        },
-        [
-            quantityForAddToCart,
-            dataWs,
-            setErrorMessage,
-            setIsVisibleMsg,
-            getAvailabiityCheck,
-            CHeckShouldAddOrNotToCart
-        ],
-    );
-
-    const addToWatchListClicked2 = (skuCode) => {
-        if (dataWs === "0") {
-            console.log("Logic running of wishlist for dataws0");
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
-                console.log(event);
-                window.dispatchEvent(event);
-
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
-                    setIsVisibleMsg(true);
-                }
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
-
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-            }
-        } else if (dataWs === "1") {
-            console.log("Logic running of wishlist for dataws1");
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
-
-                window.dispatchEvent(event);
-
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
-                    setIsVisibleMsg(true);
-                }
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
-
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-            }
-        } else {
-            console.log("Logic running of wishlist for no dataws");
-
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
-
-                window.dispatchEvent(event);
-
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
-                    setIsVisibleMsg(true);
-                }
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
-
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
             }
         }
     };
@@ -858,6 +1051,54 @@ const VideoComponent = ({
             return "Invalid prices";
         }
     };
+
+
+    // setTimeout(() => {
+
+    //     if (show) {
+    //         initializeVideoData(`modalVideossv-${thisVideo?.video_id}`, thisVideo?.video_url)
+    //     }
+    // }, 1000);
+
+    useEffect(() => {
+        if (show && active === index) {
+            initializeVideoData(`modalVideossv-${thisVideo?.video_id}`, thisVideo?.video_url)
+        }
+
+    }, [show, active])
+
+    useEffect(() => {
+        const checkPlayingVideos = () => {
+            const div = document.querySelector('#swirl_section_main_div');
+            if (!div) return;
+
+            const videos = div.querySelectorAll('video');
+            const playingVideos = Array.from(videos).filter(video => !video.paused && !video.ended && video.currentTime > 0);
+
+
+
+            if (show && active === index) {
+                playingVideos?.map((video) => {
+                    const id = video.id.replace('modalVideossv-', '');
+                    if (id === thisVideo.video_id) {
+                        video.play();
+                    } else {
+                        video.pause();
+                    }
+                })
+            }
+        };
+
+        // Call the function to check for playing videos
+        checkPlayingVideos();
+
+        // Optionally, set an interval to repeatedly check for playing videos
+        const intervalId = setInterval(checkPlayingVideos, 1000);
+
+        // Cleanup the interval on component unmount
+        return () => clearInterval(intervalId);
+    }, [show, active, index]);
+
     return (
         <div
             onMouseEnter={handleHover}
@@ -880,10 +1121,12 @@ const VideoComponent = ({
             <video
                 className="swirl_ssv_video_div"
                 ref={videoRef}
+                id={`modalVideossv-${thisVideo?.video_id}`}
                 onEnded={handleVideoEnd}
                 preload="metadata"
                 autoPlay={active === index ? true : false}
                 loop
+                style={{ objectFit: thisVideo.is_landscape == 1 ? "fill" : "contain" }}
                 playsInline
                 muted={muted}
             >
@@ -1145,17 +1388,16 @@ const VideoComponent = ({
                             </a>
                             <a
                                 href={`https://twitter.com/share?url=${this_page_url}?swirl_video=${window.btoa(
-                                    thisVideo?.video_id,
+                                    thisVideo?.video_id
                                 )}`}
                                 target="_blank"
                                 rel="noreferrer"
+                                title="Share to X"
                             >
-                                <img
-                                    className="swirl_ssv_video-modal-share-modal-social-ssv"
-                                    src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/twitter.webp"
-                                    alt="Twitter icon"
-                                    title="Share on Twitter"
-                                />
+                                <svg style={{ marginTop: '3px' }} width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="36" height="36" rx="18" fill="#E8E8E8"></rect>
+                                    <path d="M15.222 11.0555H10.3608L16.0975 18.7045L10.6733 24.9444H12.5136L16.9499 19.841L20.7775 24.9444H25.6386L19.6606 16.9738L24.8054 11.0555H22.9651L18.8083 15.8373L15.222 11.0555ZM21.472 23.5555L13.1386 12.4444H14.5275L22.8608 23.5555H21.472Z" fill="#747477"></path>
+                                </svg>
                             </a>
                             <a
                                 href={`https://api.whatsapp.com/send?text=${this_page_url}?swirl_video=${window.btoa(
@@ -1320,20 +1562,20 @@ const VideoComponent = ({
                     }}
                 >
                     {/* <input
-                        style={{
-                            transition: 'opacity 0.4s ease-out',
-                            opacity: isVisible ? 0 : 1,
-                            display: "flex",
-                            flexDirection: "column"
-                        }}
-                        type="range"
-                        min={0}
-                        max={duration}
-                        step={1}
-                        value={currentTime}
-                        onChange={handleSliderChange}
-                        className='swirl_ssv_custom-slider'
-                    /> */}
+                            style={{
+                                transition: 'opacity 0.4s ease-out',
+                                opacity: isVisible ? 0 : 1,
+                                display: "flex",
+                                flexDirection: "column"
+                            }}
+                            type="range"
+                            min={0}
+                            max={duration}
+                            step={1}
+                            value={currentTime}
+                            onChange={handleSliderChange}
+                            className='swirl_ssv_custom-slider'
+                        /> */}
                     <progress
                         min={0}
                         style={{
@@ -1480,112 +1722,89 @@ const VideoComponent = ({
                     <div
                         ref={productDrawerRef}
                         style={{
-                            height: productDetalDrawer ? "360px" : "0px",
+                            height: productDetalDrawer ? "100%" : "0px",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "space-between",
-                            backgroundColor: "rgb(255,255,255)",
+                            backgroundColor: "transparent",
                             zIndex: "10000000",
                             position: "absolute",
                             bottom: "0",
                             left: "0",
                             right: "0",
-                            transition: "height 0.3s ease, max-height 3s ease",
+                            transition: "height 0.6s ease, max-height 0.6s ease",
                         }}
                     >
-                        <div
+                        <div ref={productSectionRefForDrawer}
                             style={{
-                                borderBottom: "1px solid #eee",
-                                padding: "10px",
-                                cursor: "pointer",
-                            }}
-                            onClick={() => {
-                                handleProductDetailDrawer();
-                            }}
-                        >
-                            <img
-                                src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/previous-arrow.webp"
-                                alt="product"
-                                className="swirl_ssv_down_arrow"
-                            />
-                        </div>
-                        <div
-                            style={{
-                                height: "auto",
-                                overflow: "auto",
-                                maxHeight: "400px",
-                                overflowX: "auto",
-                            }}
-                        >
+                                height: "360x",
+                                marginTop: "auto",
+                                backgroundColor: "rgb(255,255,255)",
+
+                            }} >
                             <div
-                                style={{
-                                    display: "flex",
-                                    padding: "10px",
-                                    borderBottom: "1px solid #eee",
+                                style={{ padding: "10px" }}
+                                onClick={() => {
+                                    handleProductDetailDrawer();
                                 }}
                             >
-                                <div className="swirl_col_1" style={{ width: "80px" }}>
-                                    <img
-                                        src={productData.image}
-                                        style={{
-                                            border: "1px solid #aaa",
-                                        }}
-                                        alt="product"
-                                        className="swirl_ssv_product_img_ssv swirl_ssv_prduct_on_right"
-                                    />
-                                </div>
-
+                                <img
+                                    src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/previous-arrow.webp"
+                                    alt="product"
+                                    className="swirl_ssv_down_arrow"
+                                />
+                            </div>
+                            <div
+                                style={{
+                                    height: "auto",
+                                    overflow: "auto",
+                                    maxHeight: "400px",
+                                    overflowX: "auto",
+                                    backgroundColor: "rgb(255,255,255)",
+                                }}
+                            >
                                 <div
-                                    className="swirl_col_2"
-                                    style={{ width: "calc(90% - 80px)", padding: "0px 5px" }}
+                                    style={{
+                                        display: "flex",
+                                        padding: "10px",
+                                        borderBottom: "1px solid #eee",
+                                    }}
                                 >
-                                    <p
-                                        style={{
-                                            fontWeight: "bold",
-                                            fontSize: "15px",
-                                            color: "black",
-                                            textWrap: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                        }}
+                                    <div className="swirl_col_1" style={{ width: "80px" }}>
+                                        <img
+                                            src={productData.image}
+                                            style={{
+                                                border: "1px solid #aaa",
+                                            }}
+                                            alt="product"
+                                            className="swirl_ssv_product_img_ssv swirl_ssv_prduct_on_right"
+                                        />
+                                    </div>
+
+                                    <div
+                                        className="swirl_col_2"
+                                        style={{ width: "calc(90% - 80px)", padding: "0px 5px" }}
                                     >
-                                        {sliceString(productData.title, 100)}
-                                    </p>
-                                    {swirlSettings.product_price_status === 1 ? (
-                                        <Fragment>
-                                            <div style={{ display: "flex", alignItems: "center" }}>
-                                                {productData.discount_price === productData.price ? (
-                                                    <p
-                                                        style={{
-                                                            fontWeight: "bold",
-                                                            color: swirlSettings?.mrp_fk_color,
-                                                            fontSize: "15px",
-                                                            margin: "0",
-                                                        }}
-                                                    >
-                                                        {productData.currencySymbol}
-                                                        {productData.price}
-                                                    </p>
-                                                ) : (
-                                                    <p style={{ margin: "0" }}>
-                                                        {" "}
-                                                        <span
+                                        <p
+                                            style={{
+                                                fontWeight: "bold",
+                                                fontSize: "15px",
+                                                color: "black",
+                                                textWrap: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {sliceString(productData.title, 100)}
+                                        </p>
+                                        {swirlSettings.product_price_status === 1 ? (
+                                            <Fragment>
+                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                    {productData.discount_price === productData.price ? (
+                                                        <p
                                                             style={{
                                                                 fontWeight: "bold",
-                                                                marginRight: "5px",
-                                                                color: swirlSettings?.mrp_fk_color,
-                                                                fontSize: "15px",
-                                                                margin: "0",
-                                                            }}
-                                                        >
-                                                            {productData.currencySymbol}
-
-                                                            {productData.discount_price}
-                                                        </span>{" "}
-                                                        <del
-                                                            style={{
-                                                                fontWeight: "200",
                                                                 color: swirlSettings?.mrp_fk_color,
                                                                 fontSize: "15px",
                                                                 margin: "0",
@@ -1593,305 +1812,339 @@ const VideoComponent = ({
                                                         >
                                                             {productData.currencySymbol}
                                                             {productData.price}
-                                                        </del>
-                                                    </p>
-                                                )}
-                                                {productData.discount_price === productData.price ? (
-                                                    <p
-                                                        style={{
-                                                            textAlign: "center",
-                                                            visibility: "hidden",
-                                                            fontSize: "15px",
-                                                            margin: "0",
-                                                        }}
-                                                    >
-                                                        {countPercentage()} OFF
-                                                    </p>
-                                                ) : (
-                                                    <span
-                                                        className="swirl_ssv_discount_percent_badge "
-                                                        id="swirl_ssv_discount_percent_badge_sm"
-                                                        style={{
-                                                            backgroundColor: swirlSettings?.off_bk_color,
-                                                            color: swirlSettings?.off_fk_color,
-                                                            fontSize: "13px",
-                                                            margin: "0",
-                                                        }}
-                                                    >
-                                                        {countPercentage()} OFF
-                                                    </span>
-                                                )}
+                                                        </p>
+                                                    ) : (
+                                                        <p style={{ margin: "0" }}>
+                                                            {" "}
+                                                            <span
+                                                                style={{
+                                                                    fontWeight: "bold",
+                                                                    marginRight: "5px",
+                                                                    color: swirlSettings?.mrp_fk_color,
+                                                                    fontSize: "15px",
+                                                                    margin: "0",
+                                                                }}
+                                                            >
+                                                                {productData.currencySymbol}
+
+                                                                {productData.discount_price}
+                                                            </span>{" "}
+                                                            <del
+                                                                style={{
+                                                                    fontWeight: "200",
+                                                                    color: swirlSettings?.mrp_fk_color,
+                                                                    fontSize: "15px",
+                                                                    margin: "0",
+                                                                }}
+                                                            >
+                                                                {productData.currencySymbol}
+                                                                {productData.price}
+                                                            </del>
+                                                        </p>
+                                                    )}
+                                                    {productData.discount_price === productData.price ? (
+                                                        <p
+                                                            style={{
+                                                                textAlign: "center",
+                                                                visibility: "hidden",
+                                                                fontSize: "15px",
+                                                                margin: "0",
+                                                            }}
+                                                        >
+                                                            {countPercentage()} OFF
+                                                        </p>
+                                                    ) : (
+                                                        <span
+                                                            className="swirl_ssv_discount_percent_badge "
+                                                            id="swirl_ssv_discount_percent_badge_sm"
+                                                            style={{
+                                                                backgroundColor: swirlSettings?.off_bk_color,
+                                                                color: swirlSettings?.off_fk_color,
+                                                                fontSize: "13px",
+                                                                margin: "0",
+                                                            }}
+                                                        >
+                                                            {countPercentage()} OFF
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </Fragment>
+                                        ) : (
+                                            ""
+                                        )}
+                                    </div>
+                                    <div
+                                        className="swirl_col_3  swirl_ssv_wishlist_heart"
+                                        style={{
+                                            width: "10%",
+                                            display: "grid",
+                                            placeItems: "center",
+                                        }}
+                                    >
+                                        <div
+                                            onClick={() => {
+                                                // setDescriptionOn(true);
+                                                // setDescriptionData(el);
+                                                if (checkInWishListOrNo.status) {
+                                                    removeFromWatchList(checkInWishListOrNo?.obj?.id);
+                                                } else {
+                                                    if (swProps?.token) {
+                                                        removePointerEventsFromHeart()
+                                                        addToWatchListClicked2(productData?.sku_code, 1);
+                                                        console.log("5");
+                                                    } else {
+                                                        addToWatchListClicked2(productData?.sku_code, 1);
+                                                        removePointerEventsFromHeart()
+                                                        console.log("6");
+                                                        onClose();
+
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            {!checkInWishListOrNo.status ? (
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="28"
+                                                    height="28"
+                                                    fill="#000"
+                                                    viewBox="0 0 256 256"
+                                                >
+                                                    <rect width="256" height="256" fill="none"></rect>
+                                                    <path
+                                                        d="M133.7,211.9l81-81c19.9-20,22.8-52.7,4-73.6a52,52,0,0,0-75.5-2.1L128,70.5,114.9,57.3c-20-19.9-52.7-22.8-73.6-4a52,52,0,0,0-2.1,75.5l83.1,83.1A8.1,8.1,0,0,0,133.7,211.9Z"
+                                                        fill="none"
+                                                        stroke="#000"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="8"
+                                                    ></path>
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="28"
+                                                    height="28"
+                                                    fill="#000"
+                                                    viewBox="0 0 256 256"
+                                                >
+                                                    <rect width="256" height="256" fill="none"></rect>
+                                                    <path
+                                                        d="M133.7,211.9l81-81c19.9-20,22.8-52.7,4-73.6a52,52,0,0,0-75.5-2.1L128,70.5,114.9,57.3c-20-19.9-52.7-22.8-73.6-4a52,52,0,0,0-2.1,75.5l83.1,83.1A8.1,8.1,0,0,0,133.7,211.9Z"
+                                                        fill="red"
+                                                        stroke="#000"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="8"
+                                                    ></path>
+                                                </svg>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p
+                                        style={{
+                                            margin: "0",
+                                            color: "#000",
+                                            fontWeight: "600",
+                                            padding: "10px",
+                                            fontSize: "18px",
+                                        }}
+                                    >
+                                        Product Details
+                                    </p>
+                                    <p
+                                        style={{
+                                            margin: "0",
+                                            color: "#000",
+                                            fontSize: "14px",
+                                            padding: "10px",
+                                        }}
+                                    >
+                                        {" "}
+                                        {productData.desription}
+                                    </p>
+                                </div>
+                                <div
+                                    className="swirl_ssv_quantity_section"
+                                    style={{
+                                        border: "1px solid #eee",
+                                        display: "flex",
+                                        width: "100%",
+                                        alignItems: "center",
+                                        margin: "0",
+                                        padding: "10px",
+                                        alignContent: "space-between",
+                                    }}
+                                >
+                                    <p
+                                        style={{
+                                            fontSize: "18px",
+                                            color: "#000",
+                                            margin: "0",
+                                            display: "flex",
+                                        }}
+                                    >
+                                        Choose Quantity
+                                    </p>
+                                    <div style={{ marginLeft: "auto", display: "flex", marginRight: "10px" }}>
+                                        <button
+                                            style={{
+                                                padding: "10px 20px",
+                                                outline: "none",
+                                                border: "none",
+                                                cursor: "pointer",
+                                            }}
+                                            disabled={quantityForAddToCart === 1 ? true : false}
+                                            onClick={() =>
+                                                handleQuantity("decrease", productData.sku_code)
+                                            }
+                                        >
+                                            -
+                                        </button>
+                                        <input
+                                            className="swirl_ssv_quantity_section_input"
+                                            value={quantityForAddToCart}
+                                            disabled
+                                        />
+                                        <button
+                                            style={{
+                                                padding: "10px 19px",
+                                                outline: "none",
+                                                border: "none",
+                                                cursor: "pointer",
+                                            }}
+                                            disabled={quantityForAddToCart === 20 ? true : false}
+                                            onClick={() =>
+                                                handleQuantity("increase", productData.sku_code)
+                                            }
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ padding: "10px", backgroundColor: "rgb(255,255,255)", }}>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        paddingTop: "1px",
+                                        width: "100%",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    {swirlSettings?.add_to_cart === 1 ? (
+                                        <button
+                                            onClick={() => {
+                                                setLoadingbtnId("1");
+                                                setLoadingCart(true);
+                                                addTocartClicked2(productData?.sku_code, 1);
+                                                CTAClicksssv(
+                                                    swirlSettings?.brand_id,
+                                                    productData.product_id,
+                                                    thisVideo?.video_id,
+                                                    "2",
+                                                );
+                                            }}
+                                            // className="swirl_ssv_add_to_cart_btn_ssv"
+                                            style={{
+                                                width: "100%",
+                                                color: swirlSettings?.front_color_add_to_cart_btn,
+                                                border: `1px solid ${swirlSettings?.bk_color_add_to_cart_btn}`,
+                                                borderRadius: "5px",
+                                                backgroundColor: swirlSettings?.bk_color_add_to_cart_btn,
+                                                fontSize: "15px",
+                                                padding: "4px",
+                                            }}
+                                        >
+                                            <CartBtnLoadingComp
+                                                preViousText="Adding"
+                                                btnId="1"
+                                                NextText={swirlSettings?.add_to_cart_btn}
+                                                loadingCart={loadingCart}
+                                                setLoadingCart={setLoadingCart}
+                                                loadingbtnId={loadingbtnId}
+                                                setLoadingbtnId={setLoadingbtnId}
+                                            />
+                                        </button>
+                                    ) : (
+                                        ""
+                                    )}
+                                    {swirlSettings?.buy_now === 1 ? (
+                                        <button
+                                            onClick={() => {
+                                                CTAClicksssv(
+                                                    swirlSettings?.brand_id,
+                                                    productData.product_id,
+                                                    thisVideo?.video_id,
+                                                    "1",
+                                                );
+                                                onClose();
+                                                // window.open(productData?.url);
+                                                buyNowClick(productData?.sku_code)
+                                            }}
+                                            style={{
+                                                width: "100%",
+                                                color: swirlSettings?.front_color_buy_btn,
+                                                border: `1px solid ${swirlSettings?.bk_color_buy_btn}`,
+                                                backgroundColor: swirlSettings?.bk_color_buy_btn,
+                                                borderRadius: "5px",
+                                                marginLeft: "3px",
+                                                fontSize: "15px",
+                                                padding: "4px",
+                                            }}
+                                        >
+                                            {swirlSettings?.buy_btn}
+                                        </button>
+                                    ) : (
+                                        ""
+                                    )}
+                                    {swirlSettings.add_to_cart === 1 ? (
+                                        <div
+                                            onClick={() => {
+                                                window.open(`/shopping-cart`, "_blank");
+                                            }}
+                                            style={{
+                                                border: "1px solid #aaa",
+                                                padding: "3px 5px",
+                                                borderRadius: "5px",
+                                                margin: "5px",
+                                                cursor: "pointer",
+                                                backgroundColor: "#fff",
+                                            }}
+                                        >
+                                            <div>
+                                                <img
+                                                    src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/cart-icon.webp"
+                                                    height={26}
+                                                    alt="cart_icon"
+                                                />
                                             </div>
-                                        </Fragment>
+                                            <span
+                                                className="swirl_ssv_badge_add_to_cart"
+                                                style={{
+                                                    backgroundColor: swirlSettings?.bk_color_buy_btn,
+                                                    position: "absolute",
+                                                    color: swirlSettings?.front_color_buy_btn,
+                                                    marginTop: "-45px",
+                                                    marginLeft: "18px",
+                                                    width: "20px",
+                                                    height: "20px",
+                                                    textAlign: "center",
+                                                    borderRadius: "50%",
+                                                    fontSize: "12px",
+                                                    display: "grid",
+                                                    placeItems: "center",
+                                                }}
+                                            >
+                                                {quantity ? quantity : "0"}
+                                            </span>
+                                        </div>
                                     ) : (
                                         ""
                                     )}
                                 </div>
-                                <div
-                                    className="swirl_col_3"
-                                    style={{
-                                        width: "10%",
-                                        display: "grid",
-                                        placeItems: "center",
-                                    }}
-                                >
-                                    <div
-                                        onClick={() => {
-                                            // setDescriptionOn(true);
-                                            // setDescriptionData(el);
-                                            if (checkInWishListOrNo.status) {
-                                                removeFromWatchList(checkInWishListOrNo?.obj?.id);
-                                            } else {
-                                                if (cart?.token) {
-                                                    addToWatchListClicked2(productData?.sku_code, 1);
-                                                } else {
-                                                    onClose();
-                                                    addToWatchListClicked2(productData?.sku_code, 1);
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        {!checkInWishListOrNo.status ? (
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="28"
-                                                height="28"
-                                                fill="#000"
-                                                viewBox="0 0 256 256"
-                                            >
-                                                <rect width="256" height="256" fill="none"></rect>
-                                                <path
-                                                    d="M133.7,211.9l81-81c19.9-20,22.8-52.7,4-73.6a52,52,0,0,0-75.5-2.1L128,70.5,114.9,57.3c-20-19.9-52.7-22.8-73.6-4a52,52,0,0,0-2.1,75.5l83.1,83.1A8.1,8.1,0,0,0,133.7,211.9Z"
-                                                    fill="none"
-                                                    stroke="#000"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="8"
-                                                ></path>
-                                            </svg>
-                                        ) : (
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="28"
-                                                height="28"
-                                                fill="#000"
-                                                viewBox="0 0 256 256"
-                                            >
-                                                <rect width="256" height="256" fill="none"></rect>
-                                                <path
-                                                    d="M133.7,211.9l81-81c19.9-20,22.8-52.7,4-73.6a52,52,0,0,0-75.5-2.1L128,70.5,114.9,57.3c-20-19.9-52.7-22.8-73.6-4a52,52,0,0,0-2.1,75.5l83.1,83.1A8.1,8.1,0,0,0,133.7,211.9Z"
-                                                    fill="red"
-                                                    stroke="#000"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="8"
-                                                ></path>
-                                            </svg>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <p
-                                    style={{
-                                        margin: "0",
-                                        color: "#000",
-                                        fontWeight: "600",
-                                        padding: "10px",
-                                        fontSize: "18px",
-                                    }}
-                                >
-                                    Product Details
-                                </p>
-                                <p
-                                    style={{
-                                        margin: "0",
-                                        color: "#000",
-                                        fontSize: "14px",
-                                        padding: "10px",
-                                    }}
-                                >
-                                    {" "}
-                                    {productData.desription}
-                                </p>
-                            </div>
-                            <div
-                                className="swirl_ssv_quantity_section"
-                                style={{
-                                    border: "1px solid #eee",
-                                    display: "flex",
-                                    width: "100%",
-                                    alignItems: "center",
-                                    margin: "0",
-                                    padding: "10px",
-                                    alignContent: "space-between",
-                                }}
-                            >
-                                <p
-                                    style={{
-                                        fontSize: "18px",
-                                        color: "#000",
-                                        margin: "0",
-                                        display: "flex",
-                                    }}
-                                >
-                                    Choose Quantity
-                                </p>
-                                <div style={{ marginLeft: "auto", display: "flex", marginRight: "10px" }}>
-                                    <button
-                                        style={{
-                                            padding: "10px 20px",
-                                            outline: "none",
-                                            border: "none",
-                                            cursor: "pointer",
-                                        }}
-                                        disabled={quantityForAddToCart === 1 ? true : false}
-                                        onClick={() =>
-                                            handleQuantity("decrease", productData.sku_code)
-                                        }
-                                    >
-                                        -
-                                    </button>
-                                    <input
-                                        className="swirl_ssv_quantity_section_input"
-                                        value={quantityForAddToCart}
-                                        disabled
-                                    />
-                                    <button
-                                        style={{
-                                            padding: "10px 19px",
-                                            outline: "none",
-                                            border: "none",
-                                            cursor: "pointer",
-                                        }}
-                                        disabled={quantityForAddToCart === 20 ? true : false}
-                                        onClick={() =>
-                                            handleQuantity("increase", productData.sku_code)
-                                        }
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ padding: "10px" }}>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    paddingTop: "1px",
-                                    width: "100%",
-                                    alignItems: "center",
-                                }}
-                            >
-                                {swirlSettings?.add_to_cart === 1 ? (
-                                    <button
-                                        onClick={() => {
-                                            setLoadingbtnId("1");
-                                            setLoadingCart(true);
-                                            addTocartClicked2(productData?.sku_code, 1);
-                                            CTAClicksssv(
-                                                swirlSettings?.brand_id,
-                                                productData.product_id,
-                                                thisVideo?.video_id,
-                                                "2",
-                                            );
-                                        }}
-                                        // className="swirl_ssv_add_to_cart_btn_ssv"
-                                        style={{
-                                            width: "100%",
-                                            color: swirlSettings?.front_color_add_to_cart_btn,
-                                            border: `1px solid ${swirlSettings?.bk_color_add_to_cart_btn}`,
-                                            borderRadius: "5px",
-                                            backgroundColor: swirlSettings?.bk_color_add_to_cart_btn,
-                                            fontSize: "15px",
-                                            padding: "4px",
-                                        }}
-                                    >
-                                        <CartBtnLoadingComp
-                                            preViousText="Adding"
-                                            btnId="1"
-                                            NextText={swirlSettings?.add_to_cart_btn}
-                                            loadingCart={loadingCart}
-                                            setLoadingCart={setLoadingCart}
-                                            loadingbtnId={loadingbtnId}
-                                            setLoadingbtnId={setLoadingbtnId}
-                                        />
-                                    </button>
-                                ) : (
-                                    ""
-                                )}
-                                {swirlSettings?.buy_now === 1 ? (
-                                    <button
-                                        onClick={() => {
-                                            CTAClicksssv(
-                                                swirlSettings?.brand_id,
-                                                productData.product_id,
-                                                thisVideo?.video_id,
-                                                "1",
-                                            );
-                                            onClose();
-                                            window.open(productData?.url);
-                                        }}
-                                        style={{
-                                            width: "100%",
-                                            color: swirlSettings?.front_color_buy_btn,
-                                            border: `1px solid ${swirlSettings?.bk_color_buy_btn}`,
-                                            backgroundColor: swirlSettings?.bk_color_buy_btn,
-                                            borderRadius: "5px",
-                                            marginLeft: "3px",
-                                            fontSize: "15px",
-                                            padding: "4px",
-                                        }}
-                                    >
-                                        {swirlSettings?.buy_btn}
-                                    </button>
-                                ) : (
-                                    ""
-                                )}
-                                {swirlSettings.add_to_cart === 1 ? (
-                                    <div
-                                        onClick={() => {
-                                            window.open(`/shopping-cart`, "_blank");
-                                        }}
-                                        style={{
-                                            border: "1px solid #aaa",
-                                            padding: "3px 5px",
-                                            borderRadius: "5px",
-                                            margin: "5px",
-                                            cursor: "pointer",
-                                            backgroundColor: "#fff",
-                                        }}
-                                    >
-                                        <div>
-                                            <img
-                                                src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/cart-icon.webp"
-                                                height={26}
-                                                alt="cart_icon"
-                                            />
-                                        </div>
-                                        <span
-                                            className="swirl_ssv_badge_add_to_cart"
-                                            style={{
-                                                backgroundColor: swirlSettings?.bk_color_buy_btn,
-                                                position: "absolute",
-                                                color: swirlSettings?.front_color_buy_btn,
-                                                marginTop: "-45px",
-                                                marginLeft: "18px",
-                                                width: "20px",
-                                                height: "20px",
-                                                textAlign: "center",
-                                                borderRadius: "50%",
-                                                fontSize: "12px",
-                                                display: "grid",
-                                                placeItems: "center",
-                                            }}
-                                        >
-                                            {quantity ? quantity : "0"}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    ""
-                                )}
                             </div>
                         </div>
                     </div>
@@ -2112,7 +2365,8 @@ const VideoComponent = ({
                                                                         "1",
                                                                     );
                                                                     onClose();
-                                                                    window.open(el?.url);
+                                                                    // window.open(el?.url);
+                                                                    buyNowClick(el.sku_code)
                                                                 }}
                                                                 className="swirl_ssv_buy_btn_ssv"
                                                                 style={{
@@ -2145,6 +2399,7 @@ const VideoComponent = ({
 
 const ProductDescComp = ({
     swirlSettings,
+    removePointerEventsFromHeart,
     descriptionData,
     setDescriptionOn,
     el,
@@ -2162,9 +2417,10 @@ const ProductDescComp = ({
     loadingbtnId,
     setLoadingbtnId,
     wishlistData,
-    getAvailabiityCheck,
-    cart,
-    CHeckShouldAddOrNotToCart
+    getAvailabiityCheckAndVarientInfo,
+    swProps,
+    CHeckShouldAddOrNotToCart,
+    buyNowClick
 }) => {
     const checkInWishListOrNo = checkInWishListOrNot(
         wishlistData,
@@ -2226,13 +2482,13 @@ const ProductDescComp = ({
                             style={{ display: "flex" }}
                         >
                             {/* {
-                                new Intl.NumberFormat(undefined, {
-                                    style: "currency",
-                                    currency: el.product[0]?.currencyname,
-                                })
-                                    .formatToParts(0)
-                                    .find((part) => part.type === "currency").value
-                            }{el.product[0].price} */}
+                                    new Intl.NumberFormat(undefined, {
+                                        style: "currency",
+                                        currency: el.product[0]?.currencyname,
+                                    })
+                                        .formatToParts(0)
+                                        .find((part) => part.type === "currency").value
+                                }{el.product[0].price} */}
 
                             {el.product[0].discount_price === el.product[0].price ? (
                                 <p
@@ -2337,11 +2593,13 @@ const ProductDescComp = ({
                         if (checkInWishListOrNo.status) {
                             removeFromWatchList(checkInWishListOrNo?.obj?.id);
                         } else {
-                            if (cart?.token) {
+                            if (swProps?.token) {
                                 addToWatchListClicked(descriptionData?.sku_code, 1);
+                                console.log("7");
                             } else {
                                 onClose();
                                 addToWatchListClicked(descriptionData?.sku_code, 1);
+                                console.log("8");
                             }
                         }
 
@@ -2520,11 +2778,15 @@ const ProductDescComp = ({
                         if (checkInWishListOrNo.status) {
                             removeFromWatchList(checkInWishListOrNo?.obj?.id);
                         } else {
-                            if (cart?.token) {
+                            if (swProps?.token) {
+                                removePointerEventsFromHeart()
                                 addToWatchListClicked(el?.sku_code, 1);
+                                console.log("9");
                             } else {
+                                removePointerEventsFromHeart()
                                 onClose();
                                 addToWatchListClicked(el?.sku_code, 1);
+                                console.log("10");
                             }
                         }
 
@@ -2544,6 +2806,7 @@ const ProductDescComp = ({
                         backgroundColor: "#fff",
                         display: "none",
                     }}
+                    className="swirl_ssv_wishlist_heart"
                 >
                     <div>
                         <img
@@ -2750,12 +3013,13 @@ const PipComp = ({
 
 const SwirlShortVideos = ({
     dataCode = "y04uwn5r",
-    dataPlalistCode = "Q9cZrn",
-    url,
+    dataPlalistCode = "zpDHb9",
     dataWs,
-    cart,
-    serverType = "development",
+    swProps,
+    serverType = "development"
 }) => {
+
+
     const [show, setShow] = useState(false);
     const [active, setActive] = useState(0);
     const [descriptionOn, setDescriptionOn] = useState(false);
@@ -2771,8 +3035,6 @@ const SwirlShortVideos = ({
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [loadingCart, setLoadingCart] = useState(false);
     const [swipeStatus, setSwipeStatus] = useState(true);
-    // const [wishlistItems, setWishlistItems] = useState([]);
-    // const [innerWidth, setInnerWidth] = useState(window.innerWidth);
     const [loadingbtnId, setLoadingbtnId] = useState(null);
     const [innerHeight, setInnerHeight] = useState(window.innerHeight);
     const [wishlistData, setWiishlistData] = useState([]);
@@ -2822,15 +3084,19 @@ const SwirlShortVideos = ({
         }
     }, [active])
 
+
     const getDataFunc = useCallback(async () => {
         try {
             await axios
                 .get(
-                    `https://api.goswirl.live/index.php/ShortVideo/videolistingV5?user=${dataCode}&playlist=${dataPlalistCode}&url=${url}`,
+                    `https://api.goswirl.live/index.php/ShortVideo/videolistingV5?user=${dataCode}&playlist=${dataPlalistCode}&url=${window.location.href}`,
                 )
-                .then((res) => {
+                .then(async (res) => {
                     const data = res?.data?.swilrs;
+
                     if (data) {
+                        const videoIds = data?.video?.map((video) => video?.video_id)
+                        // const response = await axios.get(`https://goswirl.world:3001/getTotalViewsByVideoId?video_ids=${videoIds.join(",")}`)
                         setSwirlData(data);
                         setTimeout(() => {
                             // Get the query string from window.location.search
@@ -2841,6 +3107,7 @@ const SwirlShortVideos = ({
                             // Access the value of the 'swirl_video' parameter
                             const swirlVideoParam = queryParams.get("swirl_video");
 
+                            localStorage.setItem("_ssv_storeResponseData", JSON.stringify(res?.data))
                             const findIndexByVideoId = (videoId) =>
                                 data?.video?.findIndex((obj) => obj.video_id === videoId);
                             const decodedID = window.atob(swirlVideoParam);
@@ -2871,7 +3138,7 @@ const SwirlShortVideos = ({
         } catch (error) {
             console.log(error);
         }
-    }, [dataCode, dataPlalistCode, url, handleClick]);
+    }, [dataCode, dataPlalistCode, handleClick]);
 
     const settings = {
         dots: false,
@@ -2944,7 +3211,7 @@ const SwirlShortVideos = ({
         swipe: swipeStatus,
         dots: false,
         slidesToShow: 1,
-        speed: !show ? 0 : 600,
+        speed: !show ? 0 : 250,
         slidesToScroll: 1,
         infinite: false,
         initialSlide: active,
@@ -2973,6 +3240,7 @@ const SwirlShortVideos = ({
             if (sliderRef.current) {
                 sliderRef.current.slickPause();
             }
+            setActive(current)
         },
     };
 
@@ -3016,12 +3284,49 @@ const SwirlShortVideos = ({
     //     setWindowWidth("100px")
     // }, [])
 
-    const onClose = () => {
+    const onClose = async () => {
         setShow(false);
         enableScrollssv();
         setDescriptionOn(false);
         setQantityForAddToCart(1)
+
+
+
+        const analyticsData = JSON.parse(localStorage.getItem("_all_video_data"));
+        // console.log("2128----", analyticsData);
+        const updatedData = await analyticsData?.map(async (i) => {
+            i.video_id = i.id.replace(substring_to_remove, "");
+            return i;
+        });
+
+        if (updatedData?.length > 0) {
+            Promise.all(updatedData)
+                .then(async (modifiedData) => {
+
+                    // Sending data to the server
+                    await fetch("https://analytics-api.goswirl.live/engagement", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ payloads: modifiedData }), // Stringify the object
+                    })
+                        .then((response) => {
+                            videoDataArray = [];
+                            if (!response.ok) {
+                                throw new Error("Network response was not ok");
+                            }
+                            // Clear the data from local storage if successfully sent
+                            localStorage.removeItem("_all_video_data");
+                        })
+                        .catch((error) => {
+                            console.error("Error sending data:", error);
+                        });
+                })
+                .catch((err) => console.log(err));
+        }
     };
+
 
     useEffect(() => {
         getDataFunc();
@@ -3037,18 +3342,23 @@ const SwirlShortVideos = ({
                         ? "https://mcprod.glamourbook.com/graphql"
                         : "https://mcstaging.glamourbook.com/graphql";
 
-                // GraphQL query
+                // GraphQL query for glamourbook
                 const graphqlQuery = `
-            {
-              products(filter: { sku: { eq: "${skuCode}" } }) {
-                items {
-                  sku
-                  product_quatity
-                  stock_status
-                }
-              }
-            }
-          `;
+                                {
+                                products(filter: { sku: { eq: "${skuCode}" } }) {
+                                    items {
+                                    sku
+                                    product_quatity
+                                    stock_status
+                                    selected_varient {
+                                            sku
+                                            product_quatity
+                                            stock_status
+                                            }
+                                        }
+                                    }
+                                }
+                                `;
 
                 // Fetch options
                 const fetchOptions = {
@@ -3064,6 +3374,7 @@ const SwirlShortVideos = ({
                     // Execute the fetch
                     const response = await fetch(graphqlEndpoint, fetchOptions);
                     const data = await response.json();
+                    console.log(data);
                     const items = data.data.products.items;
                     // Handle the response data
                     if (items.length > 0) {
@@ -3085,188 +3396,74 @@ const SwirlShortVideos = ({
         },
         [dataWs, serverType],
     );
+    const getAvailabiityCheckAndVarientInfo = useCallback(
+        async (skuCode) => {
+            if (dataWs === "0") {
+                const graphqlEndpoint =
+                    serverType === "production"
+                        ? "https://mcprod.glamourbook.com/graphql"
+                        : "https://mcstaging.glamourbook.com/graphql";
 
-    const getWishlistDetails = useCallback(async () => {
-        if (dataWs === "0") {
-            try {
-                if (cart?.token) {
-                    const graphqlEndpoint =
-                        serverType === "production"
-                            ? "https://mcprod.glamourbook.com/graphql"
-                            : "https://mcstaging.glamourbook.com/graphql";
-                    const graphqlQuery = `
-                    query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {
-                        customer {
-                          wishlists {
-                            id
-                            __typename
-                            items_count
-                            items_v2(currentPage: $currentPage, pageSize: $pageSize) {
-                              items {
-                                id
-                                product {
-                                  uid
-                                  sku
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }       
-                  `;
-                    const requestOptions = {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            authorization: cart?.token ? `Bearer ${cart?.token}` : " ",
-                        },
-                        body: JSON.stringify({
-                            query: graphqlQuery,
-                            variables: {
-                                currentPage: 1,
-                                pageSize: 50,
-                            },
-                        }),
-                    };
-
-                    const wishlistResults = await fetch(graphqlEndpoint, requestOptions);
-                    const data = await wishlistResults.json();
-                    if (data) {
-                        if (data?.data?.customer?.wishlists) {
-                            setWiishlistData(
-                                data?.data?.customer?.wishlists[0].items_v2.items,
-                            );
-                        }
-                    }
-
-                    // console.log(data?.data?.customer?.wishlists[0].items_v2.items);
-                }
-                // This function returns all wishlist items with their products uid & sku
-                // return data.customer.wishlists.items_v2;
-            } catch (error) {
-                console.error(error);
-            }
-        } else if (dataWs === "1") {
-            try {
-                if (cart?.token) {
-                    const graphqlEndpoint =
-                        serverType === "production"
-                            ? "https://mcprod.glamourbook.com/graphql"
-                            : "https://mcstaging.glamourbook.com/graphql";
-                    const graphqlQuery = `
-                    query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {
-                        customer {
-                          wishlists {
-                            id
-                            __typename
-                            items_count
-                            items_v2(currentPage: $currentPage, pageSize: $pageSize) {
-                              items {
-                                id
-                                product {
-                                  uid
-                                  sku
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }       
-                  `;
-                    const requestOptions = {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            authorization: cart?.token ? `Bearer ${cart?.token}` : " ",
-                        },
-                        body: JSON.stringify({
-                            query: graphqlQuery,
-                            variables: {
-                                currentPage: 1,
-                                pageSize: 50,
-                            },
-                        }),
-                    };
-
-                    const wishlistResults = await fetch(graphqlEndpoint, requestOptions);
-                    const data = await wishlistResults.json();
-                    if (data) {
-                        if (data?.data?.customer?.wishlists) {
-                            setWiishlistData(
-                                data?.data?.customer?.wishlists[0].items_v2.items,
-                            );
-                        }
-                    }
-
-                    // console.log(data?.data?.customer?.wishlists[0].items_v2.items);
-                }
-                // This function returns all wishlist items with their products uid & sku
-                // return data.customer.wishlists.items_v2;
-            } catch (error) {
-                console.error(error);
-            }
-        } else {
-            try {
-                if (cart?.token) {
-                    const graphqlEndpoint =
-                        serverType === "production"
-                            ? "https://mcprod.glamourbook.com/graphql"
-                            : "https://mcstaging.glamourbook.com/graphql";
-
-                    const graphqlQuery = `
-                        query GetAllWishlist($currentPage: Int!, $pageSize: Int!) {
-                            customer {
-                              wishlists {
-                                id
-                                __typename
-                                items_count
-                                items_v2(currentPage: $currentPage, pageSize: $pageSize) {
-                                  items {
-                                    id
-                                    product {
-                                      uid
-                                      sku
+                // GraphQL query for glamourbook
+                const graphqlQuery = `
+                                {
+                                products(filter: { sku: { eq: "${skuCode}" } }) {
+                                    items {
+                                    sku
+                                    product_quatity
+                                    stock_status
+                                    selected_varient {
+                                            sku
+                                            product_quatity
+                                            stock_status
+                                            }
+                                        }
                                     }
-                                  }
                                 }
-                              }
-                            }
-                          }       
-                      `;
-                    const requestOptions = {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            authorization: cart?.token ? `Bearer ${cart?.token}` : " ",
-                        },
-                        body: JSON.stringify({
-                            query: graphqlQuery,
-                            variables: {
-                                currentPage: 1,
-                                pageSize: 50,
-                            },
-                        }),
-                    };
+                                `;
 
-                    const wishlistResults = await fetch(graphqlEndpoint, requestOptions);
-                    const data = await wishlistResults.json();
-                    if (data) {
-                        if (data?.data?.customer?.wishlists) {
-                            setWiishlistData(
-                                data?.data?.customer?.wishlists[0].items_v2.items,
-                            );
-                        }
+                // Fetch options
+                const fetchOptions = {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        // Add any additional headers if required
+                    },
+                    body: JSON.stringify({ query: graphqlQuery }),
+                };
+
+                try {
+                    // Execute the fetch
+                    const response = await fetch(graphqlEndpoint, fetchOptions);
+                    const data = await response.json();
+                    console.log(data);
+                    const items = data.data.products.items;
+                    // Handle the response data
+                    if (items.length > 0) {
+                        const status = items[0].stock_status;
+                        const availabilityQuant = items[0].product_quatity;
+
+                        return status === "OUT_OF_STOCK"
+                            ? { status: "outofstock", availableQuantity: availabilityQuant }
+                            : { status: "instock", availableQuantity: availabilityQuant, varient: data.data.products?.items[0]?.selected_varient ? data.data.products?.items[0]?.selected_varient : null };
+                    } else {
+                        return "outofstock";
                     }
-
-                    // console.log(data?.data?.customer?.wishlists[0].items_v2.items);
+                } catch (error) {
+                    // Handle errors
+                    console.error(error);
+                    return "wrong";
                 }
-                // This function returns all wishlist items with their products uid & sku
-                // return data.customer.wishlists.items_v2;
-            } catch (error) {
-                console.error(error);
             }
-        }
-    }, [cart?.token, dataWs, serverType]);
+        },
+        [dataWs, serverType],
+    );
+
+
+    useEffect(() => {
+        setWiishlistData(swProps?.wishlistItems)
+
+    }, [swProps?.wishlistItems])
 
     const addTocartClicked = useCallback(
         async (skuCode, quantity) => {
@@ -3274,7 +3471,9 @@ const SwirlShortVideos = ({
             if (dataWs === "0") {
                 console.log("running for 0");
                 try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
+                    // const isAvailable = await getAvailabiityCheck(skuCode);
+                    const isAvailable = await getAvailabiityCheckAndVarientInfo(skuCode)
+
                     const shouldAdd = CHeckShouldAddOrNotToCart(skuCode)
                     if (shouldAdd) {
                         if (isAvailable.status === "instock") {
@@ -3283,13 +3482,15 @@ const SwirlShortVideos = ({
                                     type: "SimpleProduct",
                                     sku: skuCode,
                                     qty: quantityForAddToCart,
+                                    varient: isAvailable.varient ? isAvailable.varient : null
                                 }),
                             });
-
+                            console.log(event);
                             window.dispatchEvent(event);
 
                             setErrorMessage("Item added to Cart");
                             setIsVisibleMsg(true);
+                            setQantityForAddToCart(1)
 
                         } else if (isAvailable.status === "outofstock") {
                             setErrorMessage("This item is out of stock");
@@ -3308,74 +3509,39 @@ const SwirlShortVideos = ({
                     setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
-            } else if (dataWs === "1") {
-                console.log("Logic running of add to cart for dataws1");
-                try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
-                    if (isAvailable.status === "instock") {
-                        const event = new CustomEvent("ADDED_TO_CART", {
-                            detail: JSON.stringify({
-                                type: "SimpleProduct",
-                                sku: skuCode,
-                                qty: quantityForAddToCart,
-                            }),
-                        });
-
-                        window.dispatchEvent(event);
-                        setErrorMessage("Item added to Cart");
-                        setIsVisibleMsg(true);
-                    } else if (isAvailable.status === "outofstock") {
-                        setErrorMessage("This item is out of stock");
-                        setIsVisibleMsg(true);
-                    } else {
-                        setErrorMessage("Something went wrong, Please try again!");
-                        setIsVisibleMsg(true);
-                    }
-                } catch (error) {
-                    console.error("error", error);
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                }
             } else {
                 console.log("Logic running of add to cart for no dataws");
-                try {
-                    const isAvailable = await getAvailabiityCheck(skuCode);
-                    if (isAvailable.status === "instock") {
-                        const event = new CustomEvent("ADDED_TO_CART", {
-                            detail: JSON.stringify({
-                                type: "SimpleProduct",
-                                sku: skuCode,
-                                qty: quantityForAddToCart,
-                            }),
-                        });
 
-                        window.dispatchEvent(event);
-                        setErrorMessage("Item added to Cart");
-                        setIsVisibleMsg(true);
-                    } else if (isAvailable.status === "outofstock") {
-                        setErrorMessage("This item is out of stock");
-                        setIsVisibleMsg(true);
-                    } else {
-                        setErrorMessage("Something went wrong, Please try again!");
-                        setIsVisibleMsg(true);
-                    }
-                } catch (error) {
-                    console.error("error", error);
-                    setErrorMessage("Something went wrong, Please try again!");
-                    setIsVisibleMsg(true);
-                }
             }
         },
-        [quantityForAddToCart, dataWs, getAvailabiityCheck, CHeckShouldAddOrNotToCart],
+        [quantityForAddToCart, dataWs, getAvailabiityCheckAndVarientInfo, CHeckShouldAddOrNotToCart],
+    );
+    const buyNowClick = useCallback(
+        async (skuCode) => {
+            try {
+                const event = new CustomEvent("QUICK_BUY_WITH_SKU", {
+                    detail: JSON.stringify({
+                        type: "SimpleProduct",
+                        sku: skuCode,
+                    }),
+                });
+                console.log("BUY_NOW_EVENT", event);
+                window.dispatchEvent(event);
+                // setErrorMessage("Something went wrong, Please try again!");
+                // setIsVisibleMsg(true);
+            } catch (error) {
+                setErrorMessage("Something went wrong, Please try again!");
+                setIsVisibleMsg(true);
+            }
+
+        },
+        [],
     );
 
-    useEffect(() => {
-        const firstLoadFunc = async () => {
-            // await getCartDetails();
-            await getWishlistDetails();
-        };
-        firstLoadFunc();
-    }, [addTocartClicked, getWishlistDetails]);
+
+
+
+
     // const removeFromWishList = (itemID) => {
     //     try {
 
@@ -3401,9 +3567,7 @@ const SwirlShortVideos = ({
                 window.dispatchEvent(event);
                 setErrorMessage("Item removed from wishlist");
                 setIsVisibleMsg(true);
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
+
                 // toast.success("Successfully added to watchlist")
             } catch (error) {
                 console.error("error", error);
@@ -3421,9 +3585,7 @@ const SwirlShortVideos = ({
                 window.dispatchEvent(event);
                 setErrorMessage("Item removed from wishlist");
                 setIsVisibleMsg(true);
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
+
                 // toast.success("Successfully added to watchlist")
             } catch (error) {
                 console.error("error", error);
@@ -3441,9 +3603,7 @@ const SwirlShortVideos = ({
                 window.dispatchEvent(event);
                 setErrorMessage("Item removed from wishlist");
                 setIsVisibleMsg(true);
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
+
                 // toast.success("Successfully added to watchlist")
             } catch (error) {
                 console.error("error", error);
@@ -3454,88 +3614,86 @@ const SwirlShortVideos = ({
         }
     };
     const addToWatchListClicked = (skuCode) => {
-        if (dataWs === "0") {
-            console.log("Logic running of wishlist for dataws 0");
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
+        const check = checkInWishListOrNot(wishlistData, skuCode)
+        if (!check?.status) {
+            if (dataWs === "0") {
+                console.log("Logic running of wishlist for dataws 0");
+                try {
 
-                window.dispatchEvent(event);
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
+
+                    window.dispatchEvent(event);
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
+                        setIsVisibleMsg(true);
+
+                    }
+
+                    // toast.success("Successfully added to watchlist")
+                } catch (error) {
+                    console.error("error", error);
+
+                    setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
+            } else if (dataWs === "1") {
+                console.log("Logic running of wishlist for dataws1");
+                try {
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
 
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-            }
-        } else if (dataWs === "1") {
-            console.log("Logic running of wishlist for dataws1");
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
+                    window.dispatchEvent(event);
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
+                        setIsVisibleMsg(true);
+                    }
 
-                window.dispatchEvent(event);
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
+                    // toast.success("Successfully added to watchlist")
+                } catch (error) {
+                    console.error("error", error);
+
+                    setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
+            } else {
+                console.log("Logic running of wishlist for no dataws");
 
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
+                try {
+                    const event = new CustomEvent("ADDED_TO_WISHLIST", {
+                        detail: JSON.stringify({
+                            type: "SimpleProduct",
+                            sku: skuCode,
+                            selectedOptions: [],
+                        }),
+                    });
 
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
-            }
-        } else {
-            console.log("Logic running of wishlist for no dataws");
+                    window.dispatchEvent(event);
+                    if (swProps?.token) {
+                        setErrorMessage("Item added to wishlist");
+                        setIsVisibleMsg(true);
+                    }
 
-            try {
-                const event = new CustomEvent("ADDED_TO_WISHLIST", {
-                    detail: JSON.stringify({
-                        type: "SimpleProduct",
-                        sku: skuCode,
-                        selectedOptions: [],
-                    }),
-                });
+                    // toast.success("Successfully added to watchlist")
+                } catch (error) {
+                    console.error("error", error);
 
-                window.dispatchEvent(event);
-                if (cart?.token) {
-                    setErrorMessage("Item added to wishlist");
+                    setErrorMessage("Something went wrong, Please try again!");
                     setIsVisibleMsg(true);
                 }
-
-                setTimeout(async () => {
-                    await getWishlistDetails();
-                }, 500);
-                // toast.success("Successfully added to watchlist")
-            } catch (error) {
-                console.error("error", error);
-
-                setErrorMessage("Something went wrong, Please try again!");
-                setIsVisibleMsg(true);
             }
         }
+
     };
 
     const CTAClicksssv = async (dId, pId, vId, cType) => {
@@ -3588,8 +3746,8 @@ const SwirlShortVideos = ({
     }, []);
 
     useEffect(() => {
-        setQueantity(cart?.cartCount);
-    }, [cart?.cartCount]);
+        setQueantity(swProps?.cartCount);
+    }, [swProps?.cartCount]);
 
     const countPercentage = (el) => {
         const actualPrice = el.price;
@@ -3635,18 +3793,18 @@ const SwirlShortVideos = ({
                         : "https://mcstaging.glamourbook.com/graphql";
 
                 const graphqlQuery = `
-            {
-              products(filter: { sku: { in: [${allSkucodes
+                {
+                products(filter: { sku: { in: [${allSkucodes
                         .map((code) => `"${code}"`)
                         .join(", ")}] } }) {
-                items {
-                  sku
-                  product_quatity
-                  stock_status
+                    items {
+                    sku
+                    product_quatity
+                    stock_status
+                    }
                 }
-              }
-            }
-          `;
+                }
+            `;
 
                 const fetchOptions = {
                     method: "POST",
@@ -3722,29 +3880,145 @@ const SwirlShortVideos = ({
 
     useEffect(() => {
         // if (cart?.cartData?.length > 0) {
-        setCartData(cart?.cartItems)
+        setCartData(swProps?.cartItems)
         // }
-    }, [cart])
+    }, [swProps?.cartItems])
+
+    useEffect(() => {
+        const handleEscKeyPress = (event) => {
+            if (event.key === 'Escape') {
+                if (show) {
+                    onClose()
+                }
+            }
+        };
+        document.addEventListener('keydown', handleEscKeyPress);
+
+        return () => {
+            document.removeEventListener('keydown', handleEscKeyPress);
+        };
+    }, [show]);
+    useEffect(() => {
+
+        console.log('%cSSV v1.6.7', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
+        const handleKeyPress = (event) => {
+            switch (event.key) {
+                case 'ArrowUp':
+                    // Call your function for up key press
+                    handlePreviousSlide()
+                    break;
+                case 'ArrowDown':
+                    // Call your function for down key press
+                    handleNextSlide()
+                    break;
+                case 'ArrowLeft':
+                    // Call your function for left key press
+                    handlePreviousSlide()
+                    break;
+                case 'ArrowRight':
+                    // Call your function for right key press
+                    handleNextSlide()
+                    break;
+                default:
+                    // For other keys
+                    break;
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
+    }, []);
+
+    function setMaxHeightToVideosWithClass(className) {
+        // Get all video elements with the specified class
+        const videos = document.querySelectorAll(`.${className}`);
+
+        // Initialize variable to store maximum height
+        let maxHeight = 0;
+
+        // Iterate over video elements to find maximum height
+        videos.forEach(video => {
+            const height = video.clientHeight; // Get the client height of the video
+            maxHeight = Math.max(maxHeight, height); // Update maximum height if necessary
+        });
+
+        // Set the maximum height to all video elements with the specified class
+        videos.forEach(video => {
+            video.style.height = `${maxHeight}px`;
+        });
+    }
+
+    useEffect(() => {
+        if (swirlData) {
+            setTimeout(() => {
+                setMaxHeightToVideosWithClass('video-card');
+            }, 300);
+        }
+
+    }, [swirlData])
 
 
+    // useEffect(() => {
+    //     // Function to remove pointer events for 1.5 seconds
+    //     const removePointerEventsFromHeart = () => {
+    //         // Select all elements with the class 'swirl_ssv_wishlist_heart'
+    //         const heartElements = document.querySelectorAll('.swirl_ssv_wishlist_heart');
 
+    //         heartElements.forEach((heart) => {
+    //             heart.style.pointerEvents = 'none'; // Disable pointer events
+
+    //             setTimeout(() => {
+    //                 heart.style.pointerEvents = 'auto'; // Re-enable pointer events after 1.5 seconds
+    //             }, 1500); // 1.5 seconds
+    //         });
+    //     };
+
+    //     // // Delay execution by 1 second
+    //     // const timer = setTimeout(() => {
+    //     //     // Add click event listener to all divs with the class 'swirl_ssv_wishlist_heart'
+    //     //     const heartElements = document.querySelectorAll('.swirl_ssv_wishlist_heart');
+    //     //     console.log('heartElements', heartElements);
+
+    //     //     heartElements.forEach((heart) => {
+    //     //         alert('1');
+    //     //         heart.addEventListener('click', removePointerEventsFromHeart);
+    //     //     });
+    //     // }, 1000); // Delay of 1 second (1000 ms)
+
+
+    // }, []); // Empty dependency array ensures this effect runs once when the component mounts
+
+    const removePointerEventsFromHeart = () => {
+        // Select all elements with the class 'swirl_ssv_wishlist_heart'
+        const heartElements = document.querySelectorAll('.swirl_ssv_wishlist_heart');
+        heartElements.forEach((heart) => {
+            heart.style.pointerEvents = 'none'; // Disable pointer events
+
+            setTimeout(() => {
+                heart.style.pointerEvents = 'auto'; // Re-enable pointer events after 1.5 seconds
+            }, 1100); // 1.5 seconds
+        });
+    };
     return (
         <Fragment>
             <div id="swirl_section_main_div">
                 <style>
                     {`
-          #swirl_ssv_video_progress::-webkit-progress-bar {
-            background-color: ${swirlSettings?.front_color_buy_btn};
-          }
+            #swirl_ssv_video_progress::-webkit-progress-bar {
+                background-color: ${swirlSettings?.front_color_buy_btn};
+            }
 
-          #swirl_ssv_video_progress::-webkit-progress-value {
-            background-color: ${swirlSettings?.bk_color_buy_btn};
-          }
+            #swirl_ssv_video_progress::-webkit-progress-value {
+                background-color: ${swirlSettings?.bk_color_buy_btn};
+            }
 
-          #swirl_ssv_video_progress::-moz-progress-bar {
-            background-color: ${swirlSettings?.bk_color_buy_btn};
-          }
-        `}
+            #swirl_ssv_video_progress::-moz-progress-bar {
+                background-color: ${swirlSettings?.bk_color_buy_btn};
+            }
+            `}
                 </style>
                 <Modal
                     show={show}
@@ -3760,20 +4034,29 @@ const SwirlShortVideos = ({
                             return (
                                 <div className="swirl_ssv_ssv_modal_row" key={index}>
                                     <div
-                                        className="swirl_ssv_pre_next_elems"
+                                        className="swirl_ssv_pre_next_elems swirl_ssv_pre_next_elems_pre"
                                         onClick={handlePreviousSlide}
                                         style={{
-                                            cursor: index === 0 || windowWidth < 1200 ? "default" : "pointer",
                                             backgroundImage: `url(${swirlData?.video[index - 1]?.cover_image
                                                 })`,
-
+                                            width: swirlData?.video[index - 1]?.is_landscape === "0" ? "350px" : "auto",
+                                            height: swirlData?.video[index - 1]?.is_landscape === "0" ? "27vh" : "80%",
+                                            maxWidth: swirlData?.video[index - 1]?.is_landscape === "0" ? "auto" : "240px",
+                                            cursor:
+                                                index === swirlData?.video.length - 1 ||
+                                                    windowWidth < 1200
+                                                    ? "default"
+                                                    : "pointer",
 
                                         }}
                                     ></div>
                                     <div
                                         className="swirl_ssv_ssv_modal_square"
                                         style={{
+                                            borderRadius: el.product.length === 0 ? windowWidth >= 833 ? "5px" : "0px" : "0px",
+                                            overflow: "hidden",
                                             width:
+
                                                 el.product.length > 0
                                                     ? windowWidth >= 1500
                                                         ? "50vw"
@@ -3798,6 +4081,7 @@ const SwirlShortVideos = ({
                                     >
                                         <div className="swirl_ssv_row">
                                             <VideoComponent
+                                                removePointerEventsFromHeart={removePointerEventsFromHeart}
                                                 thisVideo={el}
                                                 onClose={onClose}
                                                 videoLink={el.server_url}
@@ -3808,6 +4092,7 @@ const SwirlShortVideos = ({
                                                 pipDisPlay={pipDisPlay}
                                                 setPipDisplay={setPipDisplay}
                                                 dataWs={dataWs}
+                                                setActive={setActive}
                                                 isVisibleMsg={isVisibleMsg}
                                                 setIsVisibleMsg={setIsVisibleMsg}
                                                 errorMessage={errorMessage}
@@ -3819,16 +4104,16 @@ const SwirlShortVideos = ({
                                                 setLoadingbtnId={setLoadingbtnId}
                                                 loadingbtnId={loadingbtnId}
                                                 wishlistData={wishlistData}
-                                                getWishlistDetails={getWishlistDetails}
                                                 removeFromWatchList={removeFromWatchList}
                                                 sliderRef={sliderRef}
                                                 swipeStatus={swipeStatus}
                                                 setSwipeStatus={setSwipeStatus}
-                                                getAvailabiityCheck={getAvailabiityCheck}
-                                                cart={cart}
+                                                getAvailabiityCheckAndVarientInfo={getAvailabiityCheckAndVarientInfo}
+                                                swProps={swProps}
                                                 checkProductStock={checkProductStock}
                                                 CHeckShouldAddOrNotToCart={CHeckShouldAddOrNotToCart}
                                                 show={show}
+                                                buyNowClick={buyNowClick}
                                             />
                                             {video.product.length > 0 ? (
                                                 <div className="swirl_ssv_column swirl_ssv_right_section_display_none">
@@ -3882,23 +4167,31 @@ const SwirlShortVideos = ({
                                                                                     width: "50px",
                                                                                     cursor: "pointer",
                                                                                 }}
+                                                                                className="swirl_ssv_wishlist_heart"
+
                                                                                 onClick={() => {
+
                                                                                     if (checkInWishListOrNo.status) {
                                                                                         removeFromWatchList(
                                                                                             checkInWishListOrNo?.obj?.id,
                                                                                         );
                                                                                     } else {
-                                                                                        if (cart?.token) {
+                                                                                        if (swProps?.token) {
+                                                                                            removePointerEventsFromHeart()
                                                                                             addToWatchListClicked(
                                                                                                 descriptionData?.sku_code,
                                                                                                 1,
                                                                                             );
+                                                                                            console.log("1");
+
                                                                                         } else {
+                                                                                            removePointerEventsFromHeart()
                                                                                             onClose();
                                                                                             addToWatchListClicked(
                                                                                                 descriptionData?.sku_code,
                                                                                                 1,
                                                                                             );
+                                                                                            console.log("2");
                                                                                         }
                                                                                     }
 
@@ -3912,8 +4205,8 @@ const SwirlShortVideos = ({
                                                                             >
                                                                                 {/* dasdasdertet */}
                                                                                 {/* <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill={`${checkInWishListOrNo ? "red" : "none"}`} stroke="rgba(0,0,0,0.6)" strokeWidth="2">
-                                                                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C15.09 3.81 16.76 3 18.5 3 21.58 3 24 5.42 24 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                                                                </svg> */}
+                                                                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C15.09 3.81 16.76 3 18.5 3 21.58 3 24 5.42 24 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                                                                    </svg> */}
 
                                                                                 {!checkInWishListOrNo.status ? (
                                                                                     <svg
@@ -4258,6 +4551,7 @@ const SwirlShortVideos = ({
                                                                                             swirlSettings?.front_color_add_to_cart_btn,
                                                                                         border: `1px solid ${swirlSettings?.bk_color_add_to_cart_btn}`,
                                                                                     }}
+                                                                                    className="swirl_ssv_cta_btn_add_buy"
                                                                                 >
                                                                                     <CartBtnLoadingComp
                                                                                         preViousText="Adding"
@@ -4284,7 +4578,8 @@ const SwirlShortVideos = ({
                                                                                             "1",
                                                                                         );
                                                                                         onClose();
-                                                                                        window.open(descriptionData?.url);
+                                                                                        // window.open(descriptionData?.url);
+                                                                                        buyNowClick(descriptionData?.sku_code)
                                                                                         // console.log(el);
                                                                                     }}
                                                                                     style={{
@@ -4299,6 +4594,7 @@ const SwirlShortVideos = ({
                                                                                             swirlSettings?.bk_color_buy_btn,
                                                                                         padding: "10px",
                                                                                     }}
+                                                                                    className="swirl_ssv_cta_btn_add_buy"
                                                                                 >
                                                                                     {swirlSettings?.buy_btn}
                                                                                 </button>
@@ -4307,23 +4603,28 @@ const SwirlShortVideos = ({
                                                                             )}
                                                                             <div
                                                                                 title="Add to Watchlist"
+                                                                                className="swirl_ssv_wishlist_heart"
                                                                                 onClick={() => {
                                                                                     if (checkInWishListOrNo.status) {
                                                                                         removeFromWatchList(
                                                                                             checkInWishListOrNo?.obj?.id,
                                                                                         );
                                                                                     } else {
-                                                                                        if (cart?.token) {
+                                                                                        if (swProps?.token) {
+                                                                                            removePointerEventsFromHeart()
                                                                                             addToWatchListClicked(
                                                                                                 descriptionData?.sku_code,
                                                                                                 1,
                                                                                             );
+                                                                                            console.log("3");
                                                                                         } else {
+                                                                                            removePointerEventsFromHeart()
                                                                                             onClose();
                                                                                             addToWatchListClicked(
                                                                                                 descriptionData?.sku_code,
                                                                                                 1,
                                                                                             );
+                                                                                            console.log("4");
                                                                                         }
                                                                                     }
 
@@ -4378,25 +4679,25 @@ const SwirlShortVideos = ({
                                                                                             alt="cart_icon"
                                                                                         />
                                                                                         {/* <svg
-                                                                                            stroke="none"
-                                                                                            fill="none"
-                                                                                            strokeWidth={0}
-                                                                                            viewBox="0 0 24 24"
-                                                                                            color="black"
-                                                                                            height={26}
-                                                                                            width={26}
-                                                                                            xmlns="http://www.w3.org/2000/svg"
-                                                                                            style={{
-                                                                                                color: "rgb(0, 0, 0) !important",
-                                                                                            }}
-                                                                                        >
-                                                                                            <path
+                                                                                                stroke="none"
                                                                                                 fill="none"
-                                                                                                stroke="#000"
-                                                                                                strokeWidth={2}
-                                                                                                d="M5,5 L22,5 L20,14 L7,14 L4,2 L0,2 M7,14 L8,18 L21,18 M19,23 C18.4475,23 18,22.5525 18,22 C18,21.4475 18.4475,21 19,21 C19.5525,21 20,21.4475 20,22 C20,22.5525 19.5525,23 19,23 Z M9,23 C8.4475,23 8,22.5525 8,22 C8,21.4475 8.4475,21 9,21 C9.5525,21 10,21.4475 10,22 C10,22.5525 9.5525,23 9,23 Z"
-                                                                                            />
-                                                                                        </svg> */}
+                                                                                                strokeWidth={0}
+                                                                                                viewBox="0 0 24 24"
+                                                                                                color="black"
+                                                                                                height={26}
+                                                                                                width={26}
+                                                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                                                style={{
+                                                                                                    color: "rgb(0, 0, 0) !important",
+                                                                                                }}
+                                                                                            >
+                                                                                                <path
+                                                                                                    fill="none"
+                                                                                                    stroke="#000"
+                                                                                                    strokeWidth={2}
+                                                                                                    d="M5,5 L22,5 L20,14 L7,14 L4,2 L0,2 M7,14 L8,18 L21,18 M19,23 C18.4475,23 18,22.5525 18,22 C18,21.4475 18.4475,21 19,21 C19.5525,21 20,21.4475 20,22 C20,22.5525 19.5525,23 19,23 Z M9,23 C8.4475,23 8,22.5525 8,22 C8,21.4475 8.4475,21 9,21 C9.5525,21 10,21.4475 10,22 C10,22.5525 9.5525,23 9,23 Z"
+                                                                                                />
+                                                                                            </svg> */}
                                                                                     </div>
                                                                                     <span
                                                                                         className="swirl_ssv_badge_add_to_cart"
@@ -4654,7 +4955,15 @@ const SwirlShortVideos = ({
                                                                                                             "1",
                                                                                                         );
                                                                                                         onClose();
-                                                                                                        window.open(el?.url);
+                                                                                                        // window.open(el?.url);
+                                                                                                        buyNowClick(el.sku_code)
+
+                                                                                                    }}
+                                                                                                    style={{
+                                                                                                        color: swirlSettings?.front_color_buy_btn,
+                                                                                                        border: `1px solid ${swirlSettings?.bk_color_buy_btn}`,
+                                                                                                        backgroundColor:
+                                                                                                            swirlSettings?.bk_color_buy_btn,
                                                                                                     }}
                                                                                                 >
                                                                                                     {swirlSettings?.buy_btn}
@@ -4711,6 +5020,7 @@ const SwirlShortVideos = ({
                                                         <div key={index}>
                                                             <ProductDescComp
                                                                 el={video}
+                                                                removePointerEventsFromHeart={removePointerEventsFromHeart}
                                                                 swirlSettings={swirlSettings}
                                                                 quantityForAddToCart={quantityForAddToCart}
                                                                 handleQuantity={handleQuantity}
@@ -4728,9 +5038,10 @@ const SwirlShortVideos = ({
                                                                 loadingbtnId={loadingbtnId}
                                                                 setLoadingbtnId={setLoadingbtnId}
                                                                 wishlistData={wishlistData}
-                                                                getAvailabiityCheck={getAvailabiityCheck}
-                                                                cart={cart}
+                                                                getAvailabiityCheckAndVarientInfo={getAvailabiityCheckAndVarientInfo}
+                                                                swProps={swProps}
                                                                 CHeckShouldAddOrNotToCart={CHeckShouldAddOrNotToCart}
+                                                                buyNowClick={buyNowClick}
                                                             />
                                                         </div>
                                                     )}
@@ -4741,12 +5052,19 @@ const SwirlShortVideos = ({
                                         </div>
                                     </div>
                                     <div
-                                        className="swirl_ssv_pre_next_elems"
+                                        className="swirl_ssv_pre_next_elems swirl_ssv_pre_next_elems_next"
                                         onClick={handleNextSlide}
                                         style={{
                                             backgroundImage: `url(${swirlData?.video[index + 1]?.cover_image
                                                 })`,
-                                            cursor: (index === swirlData?.video.length - 1) || windowWidth < 1200 ? "default" : "pointer",
+                                            width: swirlData?.video[index + 1]?.is_landscape === "0" ? "350px" : "auto",
+                                            height: swirlData?.video[index + 1]?.is_landscape === "0" ? "27vh" : "80%",
+                                            maxWidth: swirlData?.video[index + 1]?.is_landscape === "0" ? "auto" : "240px",
+                                            cursor:
+                                                index === swirlData?.video.length - 1 ||
+                                                    windowWidth < 1200
+                                                    ? "default"
+                                                    : "pointer",
 
                                         }}
                                     ></div>
@@ -4809,6 +5127,8 @@ const SwirlShortVideos = ({
                                                     width: "100%",
                                                     height: "auto",
                                                     display: "block",
+                                                    backgroundColor: "#000",
+                                                    minHeight: el.is_landscape === "0" ? windowWidth > 833 ? "450px" : "300px" : "auto"
                                                 }}
                                                 autoPlay={index < 5 && !show ? true : false}
                                                 preload="metadata"
@@ -4817,6 +5137,7 @@ const SwirlShortVideos = ({
                                                 poster={el.cover_image}
                                                 muted
                                                 loop
+                                                className="video-card"
                                             >
                                                 <source src={el.cover_video} type="video/mp4" />
                                                 Your browser does not support the video tag.
@@ -4865,11 +5186,15 @@ const SwirlShortVideos = ({
                                         </div>
                                         <div className="swirl_ssv_overlay-center">
                                             <div className="swirl_ssv_elements_over_short_play_btn">
-                                                <img
-                                                    className="swirl_ssv_playpausse_btn_carousel_outer"
-                                                    src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/play.webp"
-                                                    alt="play pause btn"
-                                                />
+                                                {swirlSettings?.auto_play === "0" ? (
+                                                    <img
+                                                        className="swirl_ssv_playpausse_btn_carousel_outer"
+                                                        src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/play.webp"
+                                                        alt="play pause btn"
+                                                    />
+                                                ) : (
+                                                    ""
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -4989,7 +5314,7 @@ const SwirlShortVideos = ({
                         );
                     })}
                 </Slider>
-                {pipDisPlay ? (
+                {pipDisPlay && !show ? (
                     <PipComp
                         videoData={JSON.parse(localStorage.getItem("_pip_video_data"))}
                         pipDisPlay={pipDisPlay}
