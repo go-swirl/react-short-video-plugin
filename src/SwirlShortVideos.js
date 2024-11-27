@@ -247,6 +247,7 @@ function disableScrollssv() {
 }
 
 function enableScrollssv() {
+    // alert("fsdf")
     var html = document.documentElement;
     var scrollPosition = JSON.parse(html.getAttribute("data-scroll-position"));
     html.style.overflow = html.getAttribute("data-previous-overflow");
@@ -400,7 +401,7 @@ function SampleNextArrow(props) {
         <img
             className={`${className} swirl_ssv_main_screen_arrow_icon_next`}
             alt="pre icon"
-            style={{ ...style, display: "block" }}
+            style={{ ...style, display: "block", top: "50%" }}
             onClick={onClick}
             src="https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/next-btn.webp"
         />
@@ -943,6 +944,8 @@ const VideoComponent = ({
                     if (swProps?.token) {
                         setErrorMessage("Item added to wishlist");
                         setIsVisibleMsg(true);
+                    } else {
+                        // alert("fsdf")
                     }
 
                     // toast.success("Successfully added to watchlist")
@@ -3289,9 +3292,7 @@ const SwirlShortVideos = ({
         enableScrollssv();
         setDescriptionOn(false);
         setQantityForAddToCart(1)
-
-
-
+        setSwipeStatus(true)
         const analyticsData = JSON.parse(localStorage.getItem("_all_video_data"));
         // console.log("2128----", analyticsData);
         const updatedData = await analyticsData?.map(async (i) => {
@@ -3302,6 +3303,7 @@ const SwirlShortVideos = ({
         if (updatedData?.length > 0) {
             Promise.all(updatedData)
                 .then(async (modifiedData) => {
+
 
                     // Sending data to the server
                     await fetch("https://analytics-api.goswirl.live/engagement", {
@@ -3900,7 +3902,7 @@ const SwirlShortVideos = ({
     }, [show]);
     useEffect(() => {
 
-        console.log('%cSSV v1.6.7', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
+        console.log('%cSSV v1.6.8', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
         const handleKeyPress = (event) => {
             switch (event.key) {
                 case 'ArrowUp':
@@ -4014,7 +4016,17 @@ const SwirlShortVideos = ({
             #swirl_ssv_video_progress::-webkit-progress-value {
                 background-color: ${swirlSettings?.bk_color_buy_btn};
             }
-
+ 
+            @media only screen and (max-width: 1200px) {
+            .swirl_ssv_main_screen_arrow_icon_next {
+               top: 50% !important;
+            }
+            .swirl_ssv_main_screen_arrow_icon {
+              top: 50% !important;
+            }
+          }
+          /* Add any other styles you want here */
+     
             #swirl_ssv_video_progress::-moz-progress-bar {
                 background-color: ${swirlSettings?.bk_color_buy_btn};
             }

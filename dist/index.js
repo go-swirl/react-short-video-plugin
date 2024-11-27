@@ -388,7 +388,8 @@ function SampleNextArrow(props) {
     className: className + " swirl_ssv_main_screen_arrow_icon_next",
     alt: "pre icon",
     style: _extends({}, style, {
-      display: "block"
+      display: "block",
+      top: "50%"
     }),
     onClick: onClick,
     src: "https://cdn.jsdelivr.net/gh/SwirlAdmin/swirl-cdn/assets/images/goswirl-webp/next-btn.webp"
@@ -852,7 +853,7 @@ var VideoComponent = function VideoComponent(_ref4) {
           if (swProps !== null && swProps !== void 0 && swProps.token) {
             setErrorMessage("Item added to wishlist");
             setIsVisibleMsg(true);
-          }
+          } else {}
         } catch (error) {
           console.error("error", error);
           setErrorMessage("Something went wrong, Please try again!");
@@ -2720,6 +2721,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
       enableScrollssv();
       setDescriptionOn(false);
       setQantityForAddToCart(1);
+      setSwipeStatus(true);
       var analyticsData = JSON.parse(localStorage.getItem("_all_video_data"));
       return Promise.resolve(analyticsData === null || analyticsData === void 0 ? void 0 : analyticsData.map(function (i) {
         try {
@@ -3202,7 +3204,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
     };
   }, [show]);
   React.useEffect(function () {
-    console.log('%cSSV v1.6.7', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
+    console.log('%cSSV v1.6.8', 'color: #131306; background-color: #ee7; padding: 3px; border-radius: 10px;');
     var handleKeyPress = function handleKeyPress(event) {
       switch (event.key) {
         case 'ArrowUp':
@@ -3253,7 +3255,7 @@ var SwirlShortVideos = function SwirlShortVideos(_ref7) {
   };
   return /*#__PURE__*/React__default.createElement(React.Fragment, null, /*#__PURE__*/React__default.createElement("div", {
     id: "swirl_section_main_div"
-  }, /*#__PURE__*/React__default.createElement("style", null, "\n            #swirl_ssv_video_progress::-webkit-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_buy_btn) + ";\n            }\n\n            #swirl_ssv_video_progress::-webkit-progress-value {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n\n            #swirl_ssv_video_progress::-moz-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n            "), /*#__PURE__*/React__default.createElement(Modal, {
+  }, /*#__PURE__*/React__default.createElement("style", null, "\n            #swirl_ssv_video_progress::-webkit-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.front_color_buy_btn) + ";\n            }\n\n            #swirl_ssv_video_progress::-webkit-progress-value {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n \n            @media only screen and (max-width: 1200px) {\n            .swirl_ssv_main_screen_arrow_icon_next {\n               top: 50% !important;\n            }\n            .swirl_ssv_main_screen_arrow_icon {\n              top: 50% !important;\n            }\n          }\n          /* Add any other styles you want here */\n     \n            #swirl_ssv_video_progress::-moz-progress-bar {\n                background-color: " + (swirlSettings === null || swirlSettings === void 0 ? void 0 : swirlSettings.bk_color_buy_btn) + ";\n            }\n            "), /*#__PURE__*/React__default.createElement(Modal, {
     show: show,
     title: "Lightbox",
     onClose: onClose,
